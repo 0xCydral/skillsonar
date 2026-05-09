@@ -17,6 +17,7 @@ from typing import Optional
 from . import index, ollama
 
 AGENTSKILLOS_SRC: Optional[Path] = None
+_skill_index_cache: list[dict] | None = None
 for candidate in [
     Path.home() / "AgentSkillOS" / "src",
     Path.home() / "agent-skillos" / "src",
@@ -89,42 +90,35 @@ def _discover_skills(task: str) -> list[str]:
             if os.environ.get("OPENCODE_ROUTER_DEBUG"):
                 print(f"[orchestrate] tree search failed: {exc}", file=sys.stderr)
 
-    # Catalog fallback: scan imported skill catalog for keyword matches
-    catalog = AGENTSKILLOS_SRC.parent / "data" / "skill_catalog" if AGENTSKILLOS_SRC else None
-    if catalog is None or not catalog.is_dir():
+    # Catalog fallback: fast tokenized search over pre-built skill index
+    index_path = AGENTSKILLOS_SRC.parent / "data" / "skill_index.json" if AGENTSKILLOS_SRC else None
+    if index_path is None or not index_path.exists():
         return skills
 
     try:
         import re as _re
-        terms = _re.findall(r"[a-z]{3,}", task.lower())
-        scored: list[tuple[int, str]] = []
+        terms = set(_re.findall(r"[a-z0-9]{3,}", task.lower()))
+        if not terms:
+            return skills
 
-        for skill_dir in sorted(catalog.iterdir()):
-            if not skill_dir.is_dir():
-                continue
-            skill_md = skill_dir / "SKILL.md"
-            if not skill_md.exists():
-                continue
-            try:
-                text = skill_md.read_text(encoding="utf-8")
-            except Exception:
-                continue
-            match = _FRONTMATTER.match(text)
-            fm_text = match.group(1) if match else ""
-            name = skill_dir.name.replace("-", " ")
-            desc_match = _re.search(r"description:\s*(.+)", fm_text)
-            desc = desc_match.group(1).strip().strip('"').strip("'") if desc_match else ""
-            searchable = f"{name} {desc}".lower()
-            score = sum(1 for t in terms if t in searchable)
+        # Load index (cached in module global after first load)
+        global _skill_index_cache
+        if _skill_index_cache is None:
+            _skill_index_cache = json.loads(index_path.read_text(encoding="utf-8"))
+
+        scored: list[tuple[int, str]] = []
+        for entry in _skill_index_cache:
+            entry_tokens = set(entry.get("tokens", []))
+            score = len(terms & entry_tokens)
             if score > 0:
-                scored.append((score, name))
+                scored.append((score, entry["name"]))
 
         scored.sort(key=lambda x: -x[0])
-        new_skills = [s[1] for s in scored[:10] if s[1] not in skills]
+        new_skills = [s[1] for s in scored[:15] if s[1] not in skills]
         skills.extend(new_skills)
     except Exception as exc:
         if os.environ.get("OPENCODE_ROUTER_DEBUG"):
-            print(f"[orchestrate] catalog scan failed: {exc}", file=sys.stderr)
+            print(f"[orchestrate] index search failed: {exc}", file=sys.stderr)
 
     return skills
 
