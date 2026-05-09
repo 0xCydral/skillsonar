@@ -1,0 +1,60 @@
+{
+  "$comment": "Starter profile config. The default `ollama-local` profile uses one model for everything (qwen3.5:4b — also the default rerank model, so it's already pulled). Works zero-config. Upgrade to a real provider for production work by editing or switching to one of the other profiles.",
+  "active": "ollama-local",
+  "profiles": {
+    "ollama-local": {
+      "description": "Single-model self-hosted starter. Uses the rerank model for everything — works the moment you finish install.sh. Upgrade by editing this profile or switching to one configured for your provider.",
+      "buckets": {
+        "pro":         "ollama/qwen3.5:4b",
+        "flash":       "ollama/qwen3.5:4b",
+        "coding":      "ollama/qwen3.5:4b",
+        "visual":      "ollama/qwen3.5:4b",
+        "chinese":     "ollama/qwen3.5:4b",
+        "translation": "ollama/qwen3.5:4b"
+      }
+    },
+    "ollama-local-multi": {
+      "description": "Multi-model self-hosted setup. You need to `ollama pull` each of these. Better quality than `ollama-local`, no external API.",
+      "buckets": {
+        "pro":         "ollama/qwen3.5:9b",
+        "flash":       "ollama/qwen3.5:4b",
+        "coding":      "ollama/qwen3-coder:14b",
+        "visual":      "ollama/qwen3-vl:7b",
+        "chinese":     "ollama/qwen3.5:9b",
+        "translation": "ollama/qwen3.5:9b"
+      }
+    },
+    "ollama-cloud": {
+      "description": "All buckets on Ollama Cloud — useful when other plans are exhausted.",
+      "buckets": {
+        "pro":         "ollama-cloud/deepseek-v4-pro",
+        "flash":       "ollama-cloud/deepseek-v4-flash",
+        "coding":      "ollama-cloud/qwen3-coder:480b",
+        "visual":      "ollama-cloud/qwen3-vl:235b-instruct",
+        "chinese":     "ollama-cloud/glm-5.1",
+        "translation": "ollama-cloud/qwen3.5:397b"
+      }
+    },
+    "nvidia-nim": {
+      "description": "NVIDIA NIM-hosted models. Visual falls back to pro (NIM lacks a strong vision-chat model in this matrix).",
+      "buckets": {
+        "pro":         "nvidia/deepseek-ai/deepseek-v4-pro",
+        "flash":       "nvidia/deepseek-ai/deepseek-v4-flash",
+        "coding":      "nvidia/qwen/qwen3-coder-480b-a35b-instruct",
+        "chinese":     "nvidia/z-ai/glm-5.1",
+        "translation": "nvidia/qwen/qwen3.5-397b-a17b"
+      }
+    },
+    "deepseek-official": {
+      "description": "Official DeepSeek API for pro/flash. Other buckets pick a sensible fallback — replace with what you have.",
+      "buckets": {
+        "pro":         "deepseek/deepseek-v4-pro",
+        "flash":       "deepseek/deepseek-v4-flash",
+        "coding":      "deepseek/deepseek-v4-pro",
+        "visual":      "deepseek/deepseek-v4-pro",
+        "chinese":     "deepseek/deepseek-v4-pro",
+        "translation": "deepseek/deepseek-v4-pro"
+      }
+    }
+  }
+}

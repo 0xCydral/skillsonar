@@ -1,0 +1,34 @@
+name: Bug report
+description: Something isn't working
+labels: [bug, triage]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Steps to reproduce, expected vs actual behavior.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: opencode-router version
+      description: Output of `opencode-router --version`
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: OpenCode version
+      description: Output of `opencode --version`
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Ollama version
+      description: Output of `ollama --version`
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: `opencode-router doctor` output
+      description: Run it and paste the full output.
+    validations:
+      required: true
