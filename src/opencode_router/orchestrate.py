@@ -8,6 +8,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -70,13 +71,24 @@ def _discover_skills(task: str) -> list[str]:
     if AGENTSKILLOS_SRC is None:
         return []
     try:
+        # Load env vars from AgentSkillOS .env so its config module picks them up
+        env_path = AGENTSKILLOS_SRC.parent / ".env"
+        if env_path.exists():
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                if "=" in line and not line.startswith("#"):
+                    k, v = line.split("=", 1)
+                    os.environ[k.strip()] = v.strip()
+
         _saved = sys.path.copy()
         sys.path.insert(0, str(AGENTSKILLOS_SRC))
-        from workflow.service import discover_skills  # type: ignore
+        from workflow.service import discover_skills  # type: ignore[import-untyped]
+
         result = discover_skills(task, skill_group="skill_seeds")
         sys.path = _saved
         return result
-    except Exception:
+    except Exception as exc:
+        if os.environ.get("OPENCODE_ROUTER_DEBUG"):
+            print(f"[orchestrate] skill discovery failed: {exc}", file=sys.stderr)
         return []
 
 
