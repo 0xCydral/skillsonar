@@ -117,6 +117,28 @@ long-form writing, or vision work. Swap to a real provider profile
 (`ollama-cloud`, `nvidia-nim`, `deepseek-official`) or a multi-model
 local setup (`ollama-local-multi`) once you decide what you want.
 
+### Getting a starter agent catalog
+
+The repo ships two example agents in `examples/agents/`. For a full
+catalog (200+ specialists across engineering, design, content, security,
+etc.), import from open-source collections:
+
+```bash
+# Import 180+ agents from agency-agents + ~50 from ECC
+bash scripts/import-agents.sh
+
+# Or pick one:
+bash scripts/import-agents.sh agency    # agency-agents only
+bash scripts/import-agents.sh --dry-run # preview before copying
+
+# Then register everything:
+opencode-router init
+```
+
+These collections are MIT-licensed and maintained independently. Write
+your own agents by following the format in
+[docs/creating-agents.md](docs/creating-agents.md).
+
 ## CLI
 
 ```text
