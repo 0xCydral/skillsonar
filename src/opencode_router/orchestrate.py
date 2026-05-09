@@ -67,29 +67,66 @@ PLANNER_PROMPT = """You are a workflow planner. Given a task and available agent
 
 
 def _discover_skills(task: str) -> list[str]:
-    """Try AgentSkillOS skill discovery. Returns [] if unavailable."""
-    if AGENTSKILLOS_SRC is None:
-        return []
+    """Try AgentSkillOS skill discovery, with catalog fallback. Returns [] if unavailable."""
+    skills: list[str] = []
+
+    # Try AgentSkillOS tree search first (fast, uses pre-built tree)
+    if AGENTSKILLOS_SRC is not None:
+        try:
+            env_path = AGENTSKILLOS_SRC.parent / ".env"
+            if env_path.exists():
+                for line in env_path.read_text(encoding="utf-8").splitlines():
+                    if "=" in line and not line.startswith("#"):
+                        k, v = line.split("=", 1)
+                        os.environ[k.strip()] = v.strip()
+
+            _saved = sys.path.copy()
+            sys.path.insert(0, str(AGENTSKILLOS_SRC))
+            from workflow.service import discover_skills  # type: ignore[import-untyped]
+            skills = discover_skills(task, skill_group="skill_seeds")
+            sys.path = _saved
+        except Exception as exc:
+            if os.environ.get("OPENCODE_ROUTER_DEBUG"):
+                print(f"[orchestrate] tree search failed: {exc}", file=sys.stderr)
+
+    # Catalog fallback: scan imported skill catalog for keyword matches
+    catalog = AGENTSKILLOS_SRC.parent / "data" / "skill_catalog" if AGENTSKILLOS_SRC else None
+    if catalog is None or not catalog.is_dir():
+        return skills
+
     try:
-        # Load env vars from AgentSkillOS .env so its config module picks them up
-        env_path = AGENTSKILLOS_SRC.parent / ".env"
-        if env_path.exists():
-            for line in env_path.read_text(encoding="utf-8").splitlines():
-                if "=" in line and not line.startswith("#"):
-                    k, v = line.split("=", 1)
-                    os.environ[k.strip()] = v.strip()
+        import re as _re
+        terms = _re.findall(r"[a-z]{3,}", task.lower())
+        scored: list[tuple[int, str]] = []
 
-        _saved = sys.path.copy()
-        sys.path.insert(0, str(AGENTSKILLOS_SRC))
-        from workflow.service import discover_skills  # type: ignore[import-untyped]
+        for skill_dir in sorted(catalog.iterdir()):
+            if not skill_dir.is_dir():
+                continue
+            skill_md = skill_dir / "SKILL.md"
+            if not skill_md.exists():
+                continue
+            try:
+                text = skill_md.read_text(encoding="utf-8")
+            except Exception:
+                continue
+            match = _FRONTMATTER.match(text)
+            fm_text = match.group(1) if match else ""
+            name = skill_dir.name.replace("-", " ")
+            desc_match = _re.search(r"description:\s*(.+)", fm_text)
+            desc = desc_match.group(1).strip().strip('"').strip("'") if desc_match else ""
+            searchable = f"{name} {desc}".lower()
+            score = sum(1 for t in terms if t in searchable)
+            if score > 0:
+                scored.append((score, name))
 
-        result = discover_skills(task, skill_group="skill_seeds")
-        sys.path = _saved
-        return result
+        scored.sort(key=lambda x: -x[0])
+        new_skills = [s[1] for s in scored[:10] if s[1] not in skills]
+        skills.extend(new_skills)
     except Exception as exc:
         if os.environ.get("OPENCODE_ROUTER_DEBUG"):
-            print(f"[orchestrate] skill discovery failed: {exc}", file=sys.stderr)
-        return []
+            print(f"[orchestrate] catalog scan failed: {exc}", file=sys.stderr)
+
+    return skills
 
 
 def _plan(task: str, agents_block: str) -> dict:
