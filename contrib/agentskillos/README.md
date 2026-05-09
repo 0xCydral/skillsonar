@@ -1,9 +1,11 @@
 # AgentSkillOS Router Engine
 
 An [AgentSkillOS](https://github.com/ynulihao/AgentSkillOS) orchestrator
-engine that replaces generic skill execution with
-[opencode-router](https://github.com/AdrianCsT/opencode-router)'s
-specialist agent dispatch.
+engine that dispatches every DAG node to the best specialist agent from
+your [opencode-router](https://github.com/AdrianCsT/opencode-router)
+catalog. Routes via local semantic search, then executes via
+`opencode run` (headless) with the matched agent's model and expertise.
+Zero Claude SDK — OpenCode end to end.
 
 ## How it works
 
@@ -18,8 +20,8 @@ Router engine:
     ├── opencode-router route --top-1 "generate bug diagnosis report"
     │   → "qa-automation"
     ├── Load: ~/.config/opencode/agents/qa-automation.md
-    │   → specialist prompt injected into the task
-    └── Execute via Claude SDK with agent's domain expertise
+    │   → specialist prompt + model from opencode.json
+    └── Execute via `opencode run --model <agent-model>` (headless)
     │
     ▼
 Output: report saved, summary returned to DAG
@@ -44,6 +46,7 @@ selector.
 
 - [AgentSkillOS](https://github.com/ynulihao/AgentSkillOS) installed
 - [opencode-router](https://github.com/AdrianCsT/opencode-router) installed
+- `opencode` CLI on PATH (test with `opencode --version`)
 - `~/.config/opencode/agents/` populated with specialist agents
 - `opencode-router index build` run (embedding index built)
 

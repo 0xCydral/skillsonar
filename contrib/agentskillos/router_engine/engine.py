@@ -1,18 +1,21 @@
 """
-Router engine for AgentSkillOS.
+Router engine for AgentSkillOS — OpenCode edition.
 
 Replaces generic skill execution with opencode-router's agent dispatch:
   1. Receives a task from the AgentSkillOS DAG pipeline.
   2. Routes it via `opencode-router route` to find the best specialist agent.
-  3. Loads that agent's system prompt from ~/.config/opencode/agents/<name>.md.
-  4. Executes the task via AgentSkillOS's SkillClient (Claude SDK) with the
-     agent's expertise injected into the prompt.
+  3. Loads that agent's system prompt + model from ~/.config/opencode/.
+  4. Executes the task via `opencode run` (headless) with the agent's model
+     and expertise injected.
+
+Zero Claude SDK dependencies. Uses OpenCode for all execution.
 
 Install:
     bash contrib/agentskillos/install.sh
 
 Requires:
-    - AgentSkillOS installed and importable
+    - AgentSkillOS installed (for the engine protocol + registry)
+    - opencode CLI on PATH
     - opencode-router installed and on PATH
     - ~/.config/opencode/agents/ populated with specialist agents
 """
@@ -22,259 +25,223 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 from typing import Callable, Optional
 
-from config import get_config
 from loguru import logger as _logger
 from logging_config import add_file_sink, map_level
 from orchestrator.base import EngineMeta, EngineRequest, ExecutionResult
 from orchestrator.registry import register_engine
-from orchestrator.runtime.client import SkillClient
-from orchestrator.runtime.prompts import build_direct_executor_prompt
 from orchestrator.runtime.run_context import RunContext
 
 UI_CONTRIBUTION = {
     "id": "router",
-    "partials": {
-        "execute": "modules/orchestrator_direct/direct-execute.html",
-    },
-    "scripts": [
-        "modules/orchestrator_direct/direct-execute.js",
-    ],
-    "modals": [
-        "modules/orchestrator_dag/node-log-modal.html",
-    ],
+    "partials": {"execute": "modules/orchestrator_direct/direct-execute.html"},
+    "scripts": ["modules/orchestrator_direct/direct-execute.js"],
+    "modals": ["modules/orchestrator_dag/node-log-modal.html"],
 }
 
 AGENTS_DIR = Path.home() / ".config" / "opencode" / "agents"
-ROUTE_CMD = ["opencode-router", "route", "--top-1", "--json"]
+CONFIG_FILE = Path.home() / ".config" / "opencode" / "opencode.json"
+
+_FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
 
 def _parse_frontmatter(text: str) -> str:
-    """Extract the body content after YAML frontmatter."""
-    lines = text.split("\n")
-    if lines and lines[0].strip() == "---":
-        for i in range(1, len(lines)):
-            if lines[i].strip() == "---":
-                return "\n".join(lines[i + 1 :])
-    return text
+    m = _FRONTMATTER_RE.match(text)
+    return text[m.end() :] if m else text
 
 
-def _load_agent_prompt(name: str) -> str | None:
-    """Load an agent's system prompt from its .md file."""
+def _load_agent(name: str) -> dict | None:
+    """Load an agent's prompt and model from the filesystem."""
     path = AGENTS_DIR / f"{name}.md"
     if not path.exists():
         return None
-    return _parse_frontmatter(path.read_text(encoding="utf-8"))
+    prompt = _parse_frontmatter(path.read_text(encoding="utf-8")).strip()
+    model = None
+    try:
+        cfg = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        model = cfg.get("agent", {}).get(name, {}).get("model")
+    except (json.JSONDecodeError, OSError):
+        pass
+    return {"name": name, "prompt": prompt, "model": model}
 
 
 def _route_task(task: str) -> dict:
-    """Call opencode-router to find the best agent for a task.
-
-    Returns a dict with keys: name, score, description, mode.
-    """
+    """Call opencode-router to find the best agent."""
     try:
         result = subprocess.run(
-            [*ROUTE_CMD, task],
-            capture_output=True,
-            text=True,
-            timeout=30,
+            ["opencode-router", "route", "--top-1", "--json", task],
+            capture_output=True, text=True, timeout=30,
             env={**os.environ},
         )
         if result.returncode != 0:
             return {"name": "unknown", "error": result.stderr.strip()}
         data = json.loads(result.stdout)
         results = data.get("results", [])
-        if not results:
-            return {"name": "unknown", "error": "no match found"}
-        return results[0]
+        return results[0] if results else {"name": "unknown", "error": "no match"}
     except subprocess.TimeoutExpired:
         return {"name": "unknown", "error": "routing timed out"}
     except (json.JSONDecodeError, FileNotFoundError) as e:
         return {"name": "unknown", "error": str(e)}
 
 
-def _build_agent_task(agent_name: str, agent_prompt: str, task: str) -> str:
-    """Build the task description that includes the agent's expertise."""
-    brief = agent_prompt.strip()
-    if len(brief) > 1200:
-        cutoff = brief.rfind("\n\n", 800, 1200)
-        brief = brief[:cutoff] if cutoff != -1 else brief[:1200]
+def _build_prompt(agent_name: str, agent_prompt: str, task: str) -> str:
+    brief = agent_prompt
+    if len(brief) > 1500:
+        cutoff = brief.rfind("\n\n", 1000, 1500)
+        brief = brief[:cutoff] if cutoff != -1 else brief[:1500]
     return (
-        f"You are acting as the **{agent_name}** specialist.\n\n"
-        f"Your expertise and responsibilities:\n{brief}\n\n"
-        "---\n\n"
-        f"TASK: {task}\n\n"
-        "Apply your specialist knowledge to complete this task. "
-        "Save deliverables to appropriate file paths in the project."
+        f"You are the **{agent_name}** specialist.\n\n"
+        f"Your expertise:\n{brief}\n\n"
+        f"---\n\nTASK:\n{task}\n\n"
+        "Complete this task thoroughly. Save deliverables to appropriate "
+        "file paths in the project."
     )
+
+
+async def _run_opencode(
+    prompt: str, *, model: str | None, cwd: str, timeout: int = 600,
+) -> tuple[str, int]:
+    cmd = ["opencode", "run", "--format", "json"]
+    if model:
+        cmd.extend(["--model", model])
+    cmd.append(prompt)
+
+    proc = await asyncio.create_subprocess_exec(
+        *cmd, cwd=cwd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env={**os.environ},
+    )
+    try:
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(), timeout=timeout,
+        )
+    except asyncio.TimeoutError:
+        proc.kill()
+        return "Execution timed out", -1
+
+    text = stdout.decode("utf-8", errors="replace")
+    if not text and stderr:
+        text = stderr.decode("utf-8", errors="replace")
+    return text, proc.returncode
 
 
 @register_engine("router")
 class RouterEngine:
-    """Dispatch each DAG node to the best specialist agent from the
-    opencode-router catalog, then execute with that agent's expertise."""
+    """Dispatch DAG nodes to specialist OpenCode agents via opencode-router."""
 
     ui_contribution = UI_CONTRIBUTION
     meta = EngineMeta(
-        label="Router (Agent Dispatch)",
+        label="OpenCode Router",
         description=(
-            "Routes each task to the best specialist agent from a 230+ "
-            "catalog using local semantic search + LLM rerank, then executes "
-            "with that agent's domain expertise."
+            "Routes each task to the best specialist agent from your OpenCode "
+            "catalog, then executes with that agent's model + expertise via "
+            "`opencode run`."
         ),
         folder_mode="router",
-        aliases=("agent-router", "specialist"),
+        aliases=("agent-router", "specialist", "opencode-agent"),
     )
 
     @classmethod
-    def create(cls, *, run_context, log_callback=None, allowed_tools=None, **kw):
-        return cls(
-            run_context=run_context,
-            log_callback=log_callback,
-            allowed_tools=allowed_tools,
-        )
+    def create(cls, *, run_context, log_callback=None, **kw):
+        return cls(run_context=run_context, log_callback=log_callback)
 
     def __init__(
         self,
         run_context: RunContext,
         log_callback: Optional[Callable[[str, str], None]] = None,
-        allowed_tools: Optional[list[str]] = None,
     ):
         self.run_context = run_context
         self.log_callback = log_callback
-        self.allowed_tools = allowed_tools
-        cfg = get_config()
-        self._runtime = cfg.orchestrator_config("no-skill").runtime
 
     async def run(self, request: EngineRequest) -> ExecutionResult:
         viz = request.visualizer
+        rc = self.run_context
 
-        # 1. Route the task to find the best agent
+        # 1. Route
         route = _route_task(request.task)
         agent_name = route.get("name", "unknown")
         agent_desc = route.get("description", "")
+        score = route.get("score", 0)
+
+        # 2. Load agent
+        agent = _load_agent(agent_name) if agent_name != "unknown" else None
 
         if viz:
-            auto_node = {
-                "id": agent_name,
-                "name": agent_name,
-                "type": "primary",
+            node = {
+                "id": agent_name, "name": agent_name, "type": "primary",
                 "depends_on": [],
-                "purpose": f"Dispatched to {agent_name} — {agent_desc[:120]}",
-                "outputs_summary": f"Work done by the {agent_name} specialist",
+                "purpose": f"→ {agent_name} (score={score:.2f})",
+                "outputs_summary": f"{agent_name}: {agent_desc[:120]}",
             }
-            await viz.set_nodes([auto_node], [[auto_node["id"]]])
+            await viz.set_nodes([node], [[node["id"]]])
             await viz.update_status(agent_name, "running")
 
-        # 2. Load the agent's system prompt
-        agent_prompt = (
-            _load_agent_prompt(agent_name) if agent_name != "unknown" else None
-        )
+        # 3. Workspace
+        await rc.async_setup([], rc.run_dir, copy_all=False)
+        if request.files:
+            await rc.async_copy_files(request.files)
+        await rc.async_save_meta(request.task, "router", [agent_name])
 
-        # 3. Execute
-        result = await self._execute(
-            task=request.task,
-            files=request.files,
-            agent_name=agent_name,
-            agent_prompt=agent_prompt,
-        )
+        cwd = str(rc.exec_dir)
 
-        if viz:
-            status = "completed" if result.status == "completed" else "failed"
-            await viz.update_status(agent_name, status)
-
-        return result
-
-    async def _execute(
-        self,
-        task: str,
-        files: Optional[list[str]],
-        agent_name: str,
-        agent_prompt: Optional[str],
-    ) -> ExecutionResult:
-        run_context = self.run_context
-
-        await run_context.async_setup([], run_context.run_dir, copy_all=False)
-        if files:
-            await run_context.async_copy_files(files)
-        await run_context.async_save_meta(task, "router", [agent_name])
-
-        cwd = str(run_context.exec_dir)
-        output_dir = run_context.workspace_dir
-
-        if agent_prompt:
-            prompt = _build_agent_task(agent_name, agent_prompt, task)
+        if agent:
+            prompt = _build_prompt(agent["name"], agent["prompt"], request.task)
+            model = agent.get("model")
         else:
-            prompt = build_direct_executor_prompt(
-                task=task,
-                output_dir=str(output_dir),
-                working_dir=cwd,
-            )
+            prompt = request.task
+            model = None
 
-        sink_key = f"router-{run_context.run_id}"
-        sink_id = add_file_sink(
-            run_context.get_log_path("execution"), filter_key=sink_key
-        )
-        execution_logger = _logger.bind(sink_key=sink_key)
-        execution_logger.info(
-            f"{'='*60}\nTask: router dispatch → {agent_name}\n{'='*60}"
-        )
-        execution_logger.info(f"Agent: {agent_name}")
+        # 4. Log
+        sk = f"router-{rc.run_id}"
+        sid = add_file_sink(rc.get_log_path("execution"), filter_key=sk)
+        elog = _logger.bind(sink_key=sk)
+        elog.info(f"Agent: {agent_name} | Model: {model or 'default'}")
 
-        def _log_callback(message: str, level: str = "info") -> None:
-            execution_logger.log(map_level(level), message)
+        def _log_cb(msg: str, lvl: str = "info") -> None:
+            elog.log(map_level(lvl), msg)
             if self.log_callback:
-                self.log_callback(message, level)
+                self.log_callback(msg, lvl)
 
         try:
-            client_kwargs = {
-                "session_id": f"router-{run_context.run_id}",
-                "cwd": cwd,
-                "log_callback": _log_callback,
-                "model": self._runtime.model,
-            }
-            if self.allowed_tools is not None:
-                client_kwargs["allowed_tools"] = self.allowed_tools
-
-            async with SkillClient(**client_kwargs) as client:
-                coro = client.execute(prompt)
-                if self._runtime.execution_timeout > 0:
-                    response = await asyncio.wait_for(
-                        coro, timeout=self._runtime.execution_timeout
-                    )
-                else:
-                    response = await coro
-
-                sdk_metrics = client.last_result_metrics
-                metrics_dict = sdk_metrics.to_dict() if sdk_metrics else None
-
-                max_len = self._runtime.summary_max_length
-                result = ExecutionResult(
-                    status="completed",
-                    summary=response[:max_len] if response else "",
-                    metadata={
-                        "response": response,
-                        "sdk_metrics": metrics_dict,
-                        "agent": agent_name,
-                        "agent_prompt_loaded": agent_prompt is not None,
-                    },
-                )
-
-            execution_logger.success(f"Status: {result.status}")
-
-            await run_context.async_save_result(
-                {
-                    "status": result.status,
-                    "agent": agent_name,
-                    "response": response,
-                    "sdk_metrics": metrics_dict,
-                }
+            _log_cb(
+                f"opencode run --model {model or 'default'} → {agent_name}",
+                "send",
             )
+            output, exit_code = await _run_opencode(
+                prompt, model=model, cwd=cwd,
+            )
+            _log_cb(output[:2000], "recv")
 
+            status = "completed" if exit_code == 0 else "failed"
+            result = ExecutionResult(
+                status=status,
+                summary=output[:2000] if output else "(no output)",
+                metadata={
+                    "agent": agent_name, "model": model,
+                    "route_score": score, "exit_code": exit_code,
+                },
+            )
+            elog.success(f"Status: {status}")
+            await rc.async_save_result(
+                {"status": status, "agent": agent_name, "model": model,
+                 "exit_code": exit_code},
+            )
+            if viz:
+                await viz.update_status(agent_name, status)
             return result
+        except Exception as exc:
+            elog.error(f"Failed: {exc}")
+            if viz:
+                await viz.update_status(agent_name, "failed")
+            return ExecutionResult(
+                status="failed", error=str(exc),
+                metadata={"agent": agent_name},
+            )
         finally:
-            await run_context.async_finalize()
-            _logger.remove(sink_id)
+            await rc.async_finalize()
+            _logger.remove(sid)
