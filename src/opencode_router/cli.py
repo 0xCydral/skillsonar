@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 
-from . import __version__, index, ollama, opencode, profile, route
+from . import __version__, index, ollama, opencode, orchestrate, profile, route
 from .paths import AGENTS_DIR, CONFIG_FILE, INDEX_FILE, PROFILE_FILE
 
 
@@ -158,6 +158,16 @@ def cmd_profile_set(args: argparse.Namespace) -> int:
     return cmd_models_apply(argparse.Namespace(profile=None))
 
 
+def cmd_orchestrate(args: argparse.Namespace) -> int:
+    task = " ".join(args.task).strip()
+    if not task:
+        print("Error: task cannot be empty", file=sys.stderr)
+        return 2
+    result = orchestrate.orchestrate(task, top_k=args.top_k)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0 if "error" not in result else 1
+
+
 def cmd_doctor(_args: argparse.Namespace) -> int:
     issues: list[str] = []
     ok: list[str] = []
@@ -268,6 +278,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_route.add_argument("--json", action="store_true")
     p_route.add_argument("--top-1", dest="top_one", action="store_true")
     p_route.set_defaults(func=cmd_route)
+
+    # orchestrate
+    p_orch = sub.add_parser(
+        "orchestrate",
+        help="Plan a multi-step DAG for a complex task (AgentSkillOS + agents)",
+    )
+    p_orch.add_argument("task", nargs="+")
+    p_orch.add_argument("--top-k", type=int, default=5)
+    p_orch.add_argument("--json", dest="as_json", action="store_true")
+    p_orch.set_defaults(func=cmd_orchestrate)
 
     # doctor
     p_doc = sub.add_parser("doctor", help="Diagnose configuration issues")
