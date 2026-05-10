@@ -154,6 +154,7 @@ opencode-router profile show <name>          Show one profile's bucket map
 opencode-router profile set <name>           Switch active profile + reapply
 opencode-router index build                  Re-embed all agents
 opencode-router route "<query>"              Test the router (returns top-N)
+opencode-router orchestrate "<task>"         Plan a multi-step DAG (skills + agents)
 opencode-router doctor                       Diagnose configuration issues
 ```
 
@@ -172,27 +173,35 @@ See [docs/configuration.md](docs/configuration.md) for the full schema.
 ## Architecture
 
 ```
-User opens opencode
-    ↓
-default_agent: router (primary)
-    ↓
-You type: "fix N+1 queries in Django ORM"
-    ↓
-Router: bash(opencode-router route --top-1 "...")
+User opens OpenCode → types any task
     │
-    ├── Embed task with mxbai-embed-large       (Ollama, ~50 ms)
-    ├── Cosine search over agent index           (in-process, ~10 ms)
-    ├── Rerank top-10 with qwen3.5:4b            (Ollama, ~2 s)
-    └── Returns: agent name
-    ↓
+    ▼
+Router agent detects: single-step or multi-step?
+    │
+    ├── Simple: opencode-router route --top-1 "task"
+    │       │
+    │       ├── Embed task (mxbai-embed-large, ~50ms)
+    │       ├── Cosine top-10 over 233 agents (~10ms)
+    │       ├── LLM rerank (qwen3.5:4b, ~2s, role rules)
+    │       └── Returns: best agent name
+    │
+    └── Complex: opencode-router orchestrate "task"
+            │
+            ├── Skill discovery: 118 tree seeds + 105K token index
+            ├── Agent routing: embed → cosine → rerank (per step)
+            ├── DAG planning: LLM decomposes into ordered steps
+            └── Returns: plan [{step, agent, depends_on}]
+    │
+    ▼
 Router: task(subagent_type=<name>, description=<full request>)
-    ↓
-Specialist agent does the work
-    ↓
-Result relayed back
+    │  (one per step, chained by dependencies)
+    ▼
+Specialist agents do the work (each on their assigned model)
+    ▼
+Result → multiple focused files saved to project + 3-line summary
 ```
 
-See [docs/architecture.md](docs/architecture.md) for full detail.
+[Full diagram and deep dive → docs/architecture.md](docs/architecture.md)
 
 ## Buckets
 
