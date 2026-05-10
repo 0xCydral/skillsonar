@@ -7,12 +7,25 @@ Usage:
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import re
 import sys
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Iterator, Optional
+
+
+@contextmanager
+def _quiet_stderr() -> Iterator[None]:
+    """Suppress stderr during AgentSkillOS imports (LiteLLM leaks warnings)."""
+    old = sys.stderr
+    sys.stderr = io.StringIO()
+    try:
+        yield
+    finally:
+        sys.stderr = old
 
 from . import index, ollama
 
@@ -83,8 +96,9 @@ def _discover_skills(task: str) -> list[str]:
 
             _saved = sys.path.copy()
             sys.path.insert(0, str(AGENTSKILLOS_SRC))
-            from workflow.service import discover_skills  # type: ignore[import-untyped]
-            skills = discover_skills(task, skill_group="skill_seeds")
+            with _quiet_stderr():
+                from workflow.service import discover_skills  # type: ignore[import-untyped]
+                skills = discover_skills(task, skill_group="skill_seeds")
             sys.path = _saved
         except Exception as exc:
             if os.environ.get("OPENCODE_ROUTER_DEBUG"):
