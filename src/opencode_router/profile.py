@@ -29,7 +29,6 @@ from dataclasses import dataclass
 
 from .paths import PROFILE_FILE
 
-
 CONVENTIONAL_BUCKETS = ("pro", "flash", "coding", "visual", "chinese", "translation")
 
 

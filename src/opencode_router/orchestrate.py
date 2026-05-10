@@ -12,9 +12,11 @@ import json
 import os
 import re
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator, Optional
+
+from . import index, ollama
 
 
 @contextmanager
@@ -27,9 +29,8 @@ def _quiet_stderr() -> Iterator[None]:
     finally:
         sys.stderr = old
 
-from . import index, ollama
 
-AGENTSKILLOS_SRC: Optional[Path] = None
+AGENTSKILLOS_SRC: Path | None = None
 _skill_index_cache: list[dict] | None = None
 for candidate in [
     Path.home() / "AgentSkillOS" / "src",

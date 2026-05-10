@@ -9,7 +9,6 @@ import sys
 from . import __version__, index, ollama, opencode, orchestrate, profile, route
 from .paths import AGENTS_DIR, CONFIG_FILE, INDEX_FILE, PROFILE_FILE
 
-
 # ---------------------------------------------------------------------- helpers
 
 

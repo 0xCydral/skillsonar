@@ -23,7 +23,6 @@ from dataclasses import dataclass
 
 from .paths import RULES_FILE
 
-
 # Generic, role-shape rules. Deliberately small — domain-specific rules
 # (Chinese platforms, civil engineering, narrative-vs-UI designers, etc.)
 # are project-specific and belong in the user's rules file.

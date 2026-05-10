@@ -6,7 +6,6 @@ import json
 import os
 import urllib.request
 
-
 DEFAULT_URL = os.environ.get("OPENCODE_ROUTER_OLLAMA_URL", "http://localhost:11434")
 DEFAULT_EMBED_MODEL = os.environ.get(
     "OPENCODE_ROUTER_EMBED_MODEL", "mxbai-embed-large"
