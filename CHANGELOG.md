@@ -7,28 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-10
+
 ### Added
 - **Project memory** — persistent codebase context injected on subagent dispatch.
-  Agents now receive a preamble with the project file tree, top-level symbols,
-  detected conventions (language, framework, test runner, formatter, CI
-  commands), and distilled episodic patterns — so they skip the exploration
-  phase. Built on first dispatch, refreshed when files change, git HEAD moves,
-  or 24h elapses.
-- `opencode-router memory {show,rebuild,clear,inject}` CLI subcommands for
-  manual memory management and debugging.
-- Memory walks respect `.gitignore` via `git ls-files` when available, falls
-  back to `os.walk` with a built-in deny list.
-- Symbol detection via regex for Python, JavaScript/TypeScript, Go, Rust,
-  Java, Ruby, and Terraform.
-- Convention inference from package.json, pyproject.toml, Cargo.toml, go.mod,
-  Makefile, Dockerfile, tsconfig.json, and CI workflows.
-- User-notes preservation: rebuilds preserve text below
-  `<!-- user-notes -->` in memory.md.
-- Episodic memory preservation: existing `## Episodic` sections survive
-  rebuilds.
-- `memory/` module with modular architecture (`storage`, `walk`, `anatomy`,
-  `conventions`, `trigger`) and public API: `inject()`, `rebuild()`, `clear()`.
-- 55 unit tests for the memory subsystem across 6 test modules.
+  Agents get a preamble with file tree, symbols, and conventions so they skip
+  the exploration phase.
+- `opencode-router memory {show,rebuild,clear,inject}` CLI subcommands.
+- Symbol detection (7 languages), convention inference (8 manifest types).
+- User-notes and episodic section preservation across rebuilds.
+- 55 unit tests across 6 new test modules.
 
 ## [0.2.0] — 2026-05-09
 
