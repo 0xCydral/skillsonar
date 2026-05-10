@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-10
+
+### Added
+- **Project memory** — persistent codebase context injected on subagent dispatch.
+  Agents get a preamble with file tree, symbols, and conventions so they skip
+  the exploration phase.
+- `opencode-router memory {show,rebuild,clear,inject}` CLI subcommands.
+- Symbol detection (7 languages), convention inference (8 manifest types).
+- User-notes and episodic section preservation across rebuilds.
+- 55 unit tests across 6 new test modules.
+
 ## [0.2.0] — 2026-05-09
 
 ### Added

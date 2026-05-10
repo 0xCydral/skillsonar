@@ -57,3 +57,4 @@ coverage.xml
 agent-index.json
 orchestration-profile.json
 orchestration-rules.json
+docs/*-plan.md

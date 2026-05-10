@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 
-from . import __version__, index, ollama, opencode, orchestrate, profile, route
+from . import __version__, index, memory, ollama, opencode, orchestrate, profile, route
 from .paths import AGENTS_DIR, CONFIG_FILE, INDEX_FILE, PROFILE_FILE
 
 # ---------------------------------------------------------------------- helpers
@@ -38,10 +38,18 @@ def cmd_route(args: argparse.Namespace) -> int:
         print("Error: query cannot be empty", file=sys.stderr)
         return 2
     result = route.route(query, shortlist=args.shortlist, rerank=args.rerank)
+    mem_brief = memory.inject(query) if args.with_memory else ""
+
     if args.top_one:
         if not result.candidates:
             return 1
-        print(result.candidates[0].name)
+        if args.json:
+            out = {"agent": result.candidates[0].name}
+            if mem_brief:
+                out["memory_brief"] = mem_brief
+            print(json.dumps(out, indent=2, ensure_ascii=False))
+        else:
+            print(result.candidates[0].name)
         return 0
     if args.json:
         payload = {
@@ -58,9 +66,13 @@ def cmd_route(args: argparse.Namespace) -> int:
                 for c in result.candidates[: args.top]
             ],
         }
+        if mem_brief:
+            payload["memory_brief"] = mem_brief
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0
     _print_route_table(result, args.top)
+    if mem_brief:
+        print("\n--- memory_brief ---\n" + mem_brief[:2000])
     return 0
 
 
@@ -223,6 +235,56 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_memory_show(_args: argparse.Namespace) -> int:
+    proj = memory.storage.project_root()
+    if proj is None:
+        print("No project found. Run from a project directory.", file=sys.stderr)
+        return 1
+    mem_path = memory.storage.memory_file(proj)
+    if not mem_path.exists():
+        print("No memory exists yet. Run: opencode-router memory rebuild")
+        return 1
+    print(mem_path.read_text(encoding="utf-8"))
+    return 0
+
+
+def cmd_memory_rebuild(args: argparse.Namespace) -> int:
+    result = memory.rebuild(force=args.force)
+    if result.get("status") == "skipped":
+        print(f"Skipped: {result.get('reason')}")
+        return 0
+    if "error" in result:
+        print(f"Error: {result['error']}", file=sys.stderr)
+        return 1
+    size_kb = result.get("size_bytes", 0) / 1024
+    print(
+        f"Memory built ({size_kb:.1f} KB, "
+        f"{result.get('files_tracked', 0)} files tracked) → "
+        f"{result['project']}/.opencode-router/memory.md"
+    )
+    return 0
+
+
+def cmd_memory_clear(_args: argparse.Namespace) -> int:
+    proj = memory.storage.project_root()
+    if proj is None:
+        print("No project found.", file=sys.stderr)
+        return 1
+    memory.clear(proj)
+    print(f"Removed {proj}/.opencode-router/")
+    return 0
+
+
+def cmd_memory_inject(args: argparse.Namespace) -> int:
+    task = " ".join(args.task).strip()
+    brief = memory.inject(task)
+    if brief:
+        print(brief)
+    else:
+        print("(no memory — rebuild first: opencode-router memory rebuild)")
+    return 0
+
+
 # ---------------------------------------------------------------------- parser
 
 
@@ -276,6 +338,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_route.add_argument("--no-rerank", dest="rerank", action="store_false")
     p_route.add_argument("--json", action="store_true")
     p_route.add_argument("--top-1", dest="top_one", action="store_true")
+    p_route.add_argument("--with-memory", dest="with_memory", action="store_true")
     p_route.set_defaults(func=cmd_route)
 
     # orchestrate
@@ -287,6 +350,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_orch.add_argument("--top-k", type=int, default=5)
     p_orch.add_argument("--json", dest="as_json", action="store_true")
     p_orch.set_defaults(func=cmd_orchestrate)
+
+    # memory
+    p_mem = sub.add_parser("memory", help="Manage project memory")
+    p_mem_sub = p_mem.add_subparsers(dest="action", required=True)
+    p_mem_sub.add_parser("show", help="Print memory.md").set_defaults(func=cmd_memory_show)
+    p_mem_rebuild = p_mem_sub.add_parser("rebuild", help="Rebuild project memory")
+    p_mem_rebuild.add_argument("--force", action="store_true")
+    p_mem_rebuild.set_defaults(func=cmd_memory_rebuild)
+    p_mem_sub.add_parser("clear", help="Delete .opencode-router/").set_defaults(func=cmd_memory_clear)
+    p_mem_inject = p_mem_sub.add_parser("inject", help="Print what would be injected (debug)")
+    p_mem_inject.add_argument("task", nargs="+")
+    p_mem_inject.set_defaults(func=cmd_memory_inject)
 
     # doctor
     p_doc = sub.add_parser("doctor", help="Diagnose configuration issues")
