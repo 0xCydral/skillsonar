@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-05-09
+
+### Added
+- `opencode-router orchestrate "<task>"` — multi-step DAG planning that combines
+  skill discovery (118 tree seeds + 105K token-indexed catalog) with agent routing
+  (233 specialists) and LLM-based task decomposition.
+- Skill catalog ingestion pipeline (`scripts/import-skills.py`) with security
+  scanning — rejects curl injection, prompt override, and data exfiltration
+  patterns. 105K clean skills imported from astra-skills.
+- Tokenized skill index for fast search over large catalogs (~40 MB, cached).
+- AgentSkillOS integration — tree search + token index for discovering relevant
+  skills from the 200K+ ecosystem before routing to agents.
+- Router prompt now supports two-tier dispatch: single-step (route) and
+  multi-step (orchestrate) with automatic detection.
+- Full architecture documentation with Mermaid diagram in `docs/architecture.md`.
+
+### Changed
+- Router agent prompt simplified to 40 lines — aggressive guard against doing
+  work directly.
+- Stderr from AgentSkillOS imports now suppressed to avoid confusing the router.
+- Orchestrate bash calls include 120s timeout for API call headroom.
+
+### Removed
+- Deprecated `contrib/agentskillos/` engine (Claude SDK-based, replaced by
+  native OpenCode execution via `orchestrate` subcommand).
+
 ## [0.1.0] — 2026-05-07
 
 Initial release.
