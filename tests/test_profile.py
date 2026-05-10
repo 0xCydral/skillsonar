@@ -9,7 +9,6 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-
 SAMPLE = {
     "active": "alpha",
     "profiles": {
