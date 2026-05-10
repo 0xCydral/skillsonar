@@ -285,6 +285,28 @@ def cmd_memory_inject(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_memory_log(args: argparse.Namespace) -> int:
+    proj = memory.storage.project_root()
+    if proj is None:
+        print("No project found.", file=sys.stderr)
+        return 1
+    entries = memory.log.read_entries(proj)
+    if not entries:
+        print("(no log entries)")
+        return 0
+    for e in entries[: args.tail or 20]:
+        print(f"{e.get('timestamp', '?')}  {e.get('agent', '?')}")
+        print(f"  task: {e.get('task', '?')[:80]}")
+        files = e.get("files_touched", [])
+        if files:
+            print(f"  files: {', '.join(files[:5])}")
+        summary = e.get("summary", "")
+        if summary:
+            print(f"  {summary[:120]}")
+        print()
+    return 0
+
+
 # ---------------------------------------------------------------------- parser
 
 
@@ -362,6 +384,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_mem_inject = p_mem_sub.add_parser("inject", help="Print what would be injected (debug)")
     p_mem_inject.add_argument("task", nargs="+")
     p_mem_inject.set_defaults(func=cmd_memory_inject)
+    p_mem_log = p_mem_sub.add_parser("log", help="Show recent dispatch log entries")
+    p_mem_log.add_argument("--tail", type=int, default=20)
+    p_mem_log.set_defaults(func=cmd_memory_log)
 
     # doctor
     p_doc = sub.add_parser("doctor", help="Diagnose configuration issues")

@@ -12,7 +12,7 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import anatomy, conventions, storage, trigger
+from . import anatomy, conventions, episodic, log, storage, trigger
 
 
 def inject(task: str, project: Path | None = None) -> str:
@@ -29,6 +29,29 @@ def inject(task: str, project: Path | None = None) -> str:
     return _read_header(proj) + "\n\n" + _read_episodic(proj)
 
 
+def record(
+    agent: str,
+    task: str,
+    files_touched: list[str],
+    summary: str,
+    duration_seconds: float = 0.0,
+    *,
+    project: Path | None = None,
+) -> Path | None:
+    """Record a completed subagent dispatch for future distillation."""
+    proj = project or storage.project_root()
+    if proj is None:
+        return None
+    return log.record_entry(
+        proj,
+        agent=agent,
+        task=task,
+        files_touched=files_touched,
+        summary=summary,
+        duration_seconds=duration_seconds,
+    )
+
+
 def rebuild(project: Path | None = None, *, force: bool = False) -> dict:
     """Build or refresh project memory. Returns summary dict."""
     proj = project or storage.project_root()
@@ -43,7 +66,15 @@ def rebuild(project: Path | None = None, *, force: bool = False) -> dict:
 
     anat = anatomy.build(proj, files)
     conv = conventions.build(proj, files)
-    epis = _read_existing_episodic(proj)
+
+    # Distill new log entries into episodic section
+    try:
+        distilled = episodic.distill(proj)
+        epis = distilled if distilled else _read_existing_episodic(proj)
+        if distilled:
+            _archive_processed(proj)
+    except Exception:
+        epis = _read_existing_episodic(proj)
     user_notes = _read_user_notes(proj)
 
     header = (
@@ -126,6 +157,16 @@ def _read_existing_episodic(project: Path) -> str:
     if not path.exists():
         return ""
     return _read_episodic(project)
+
+
+def _archive_processed(project: Path) -> None:
+    entries = log.read_entries(project)
+    if not entries:
+        return
+    # Archive entries that were read (all unarchived ones)
+    ld = storage.log_dir(project)
+    paths = sorted(ld.glob("*.yaml"))
+    log.archive(project, paths)
 
 
 def _read_user_notes(project: Path) -> str:

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-05-10
+
+### Added
+- Episodic memory distillation — dispatch logs are analyzed by LLM to extract
+  reusable patterns, decisions, and gotchas for future agents.
+- `memory.record()` public API for logging completed subagent dispatches.
+- `opencode-router memory log [--tail N]` CLI.
+- Distillation runs during rebuild when 5+ new log entries exist.
+- 18 new tests (log + episodic), 96 total.
+
 ## [0.3.0] — 2026-05-10
 
 ### Added
