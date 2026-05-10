@@ -38,10 +38,18 @@ def cmd_route(args: argparse.Namespace) -> int:
         print("Error: query cannot be empty", file=sys.stderr)
         return 2
     result = route.route(query, shortlist=args.shortlist, rerank=args.rerank)
+    mem_brief = memory.inject(query) if args.with_memory else ""
+
     if args.top_one:
         if not result.candidates:
             return 1
-        print(result.candidates[0].name)
+        if args.json:
+            out = {"agent": result.candidates[0].name}
+            if mem_brief:
+                out["memory_brief"] = mem_brief
+            print(json.dumps(out, indent=2, ensure_ascii=False))
+        else:
+            print(result.candidates[0].name)
         return 0
     if args.json:
         payload = {
@@ -58,9 +66,13 @@ def cmd_route(args: argparse.Namespace) -> int:
                 for c in result.candidates[: args.top]
             ],
         }
+        if mem_brief:
+            payload["memory_brief"] = mem_brief
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0
     _print_route_table(result, args.top)
+    if mem_brief:
+        print("\n--- memory_brief ---\n" + mem_brief[:2000])
     return 0
 
 
@@ -326,6 +338,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_route.add_argument("--no-rerank", dest="rerank", action="store_false")
     p_route.add_argument("--json", action="store_true")
     p_route.add_argument("--top-1", dest="top_one", action="store_true")
+    p_route.add_argument("--with-memory", dest="with_memory", action="store_true")
     p_route.set_defaults(func=cmd_route)
 
     # orchestrate
