@@ -12,21 +12,19 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import anatomy, conventions, episodic, log, storage, trigger
+from . import anatomy, conventions, episodic, log, retrieval, storage, trigger
 
 
 def inject(task: str, project: Path | None = None) -> str:
     """Return the memory preamble for a task dispatch.
 
-    Returns memory.md content verbatim (Phase 1). Phase 3 will
-    add retrieval-based injection for large projects.
-
-    Returns empty string if no memory exists.
+    Small projects (< ~3k tokens) get verbatim injection.
+    Large projects get header + top-5 retrieval chunks.
     """
     proj = project or storage.project_root()
     if proj is None or not storage.memory_file(proj).exists():
         return ""
-    return _read_header(proj) + "\n\n" + _read_episodic(proj)
+    return retrieval.inject(task, proj)
 
 
 def record(
@@ -92,6 +90,12 @@ def rebuild(project: Path | None = None, *, force: bool = False) -> dict:
     content += "\n"
 
     storage.memory_file(proj).write_text(content, encoding="utf-8")
+
+    # Build retrieval index for large projects
+    try:
+        retrieval.build_index(proj)
+    except Exception:
+        pass
 
     state = trigger.capture_snapshot(proj)
     state["last_build"] = datetime.now(timezone.utc).isoformat(timespec="seconds")

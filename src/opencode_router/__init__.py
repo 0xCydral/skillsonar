@@ -1,3 +1,3 @@
 """opencode-router — local-first agent routing for OpenCode."""
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"

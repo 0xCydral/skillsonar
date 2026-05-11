@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-05-10
+
+### Added
+- **Retrieval injection** for large projects (>9k chars / ~3k tokens).
+  Memory is chunked by section, embedded with mxbai-embed-large, and
+  cosine-searched by task relevance. Returns always-on header + top-5
+  chunks — up to 89% token savings vs verbatim injection.
+- `retrieval.py` with build_index(), chunking, and semantic search.
+- Individual embedding failures don't block index builds — graceful skip.
+- 12 new tests (retrieval module), 108 total.
+
 ## [0.3.1] — 2026-05-10
 
 ### Added
