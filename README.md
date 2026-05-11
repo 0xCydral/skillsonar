@@ -55,11 +55,20 @@ codebase, and records the dispatch so future runs learn from past work.
 
 ## Quick install
 
-If you're setting up by hand instead of using an agent:
+If you're setting up by hand instead of using an agent. macOS, Linux, and
+Windows are all supported.
 
 ```bash
-brew install python@3.12 ollama
+# Prerequisites (pick your platform)
+brew install python@3.12 ollama                         # macOS
+sudo apt install -y python3.12 python3-pip && curl -fsSL https://ollama.com/install.sh | sh  # Linux
+winget install Python.Python.3.12 Ollama.Ollama          # Windows
+
+# Start Ollama + pull models
+ollama serve &>/dev/null &
 ollama pull mxbai-embed-large qwen3.5:4b
+
+# Install opencode-router
 git clone https://github.com/AdrianCsT/opencode-router.git ~/opencode-router
 cd ~/opencode-router && python3 -m pip install -e ".[dev]"
 bash scripts/import-agents.sh
