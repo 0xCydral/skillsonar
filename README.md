@@ -153,6 +153,7 @@ Shipped profiles: `ollama-local`, `ollama-local-multi`, `ollama-cloud`,
 
 ## Docs
 
+[AGENTS.md](AGENTS.md) (setup for coding agents) ·
 [Architecture](docs/architecture.md) ·
 [Installation](docs/installation.md) ·
 [Configuration](docs/configuration.md) ·
