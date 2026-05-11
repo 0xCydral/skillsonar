@@ -275,6 +275,22 @@ def cmd_memory_clear(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_memory_record(args: argparse.Namespace) -> int:
+    files = [f.strip() for f in (args.files or "").split(",") if f.strip()]
+    path = memory.record(
+        agent=args.agent,
+        task=args.task,
+        files_touched=files,
+        summary=args.summary,
+        duration_seconds=args.duration or 0.0,
+    )
+    if path:
+        print(str(path))
+        return 0
+    print("Error: could not record entry", file=sys.stderr)
+    return 1
+
+
 def cmd_memory_inject(args: argparse.Namespace) -> int:
     task = " ".join(args.task).strip()
     brief = memory.inject(task)
@@ -381,6 +397,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_mem_rebuild.add_argument("--force", action="store_true")
     p_mem_rebuild.set_defaults(func=cmd_memory_rebuild)
     p_mem_sub.add_parser("clear", help="Delete .opencode-router/").set_defaults(func=cmd_memory_clear)
+    p_mem_record = p_mem_sub.add_parser("record", help="Log a completed subagent dispatch")
+    p_mem_record.add_argument("--agent", required=True)
+    p_mem_record.add_argument("--task", required=True)
+    p_mem_record.add_argument("--summary", required=True)
+    p_mem_record.add_argument("--files", default="")
+    p_mem_record.add_argument("--duration", type=float, default=None)
+    p_mem_record.set_defaults(func=cmd_memory_record)
     p_mem_inject = p_mem_sub.add_parser("inject", help="Print what would be injected (debug)")
     p_mem_inject.add_argument("task", nargs="+")
     p_mem_inject.set_defaults(func=cmd_memory_inject)

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-05-11
+
+### Added
+- `opencode-router memory record --agent --task --summary [--files] [--duration]`
+  CLI command so the router prompt can log completed dispatches.
+- Updated router prompt (`examples/router-prompts/default.md`) with memory-aware
+  workflow: build memory, route with context, dispatch, record completion.
+
 ## [0.3.2] — 2026-05-10
 
 ### Added
