@@ -6,25 +6,33 @@ this into your agent or point it at this file.
 ## Quick install (paste this)
 
 ```bash
-# 1. Prerequisites
-brew install python@3.12 ollama          # macOS
-# Ubuntu: sudo apt install python3.12 pipx && pipx install ollama
+# 1. Prerequisites — pick your platform
+#    macOS:
+brew install python@3.12 ollama
+#    Linux (Ubuntu/Debian):
+sudo apt install -y python3.12 python3-pip && curl -fsSL https://ollama.com/install.sh | sh
+#    Windows (PowerShell as admin):
+winget install Python.Python.3.12 Ollama.Ollama
 
-# 2. Ollama models (~4 GB, one-time)
-ollama pull mxbai-embed-large
-ollama pull qwen3.5:4b
+# 2. Start Ollama daemon + pull models (~3 GB, one-time)
+ollama serve &>/dev/null &               # Linux/macOS: start in background
+ollama pull mxbai-embed-large            # embeddings, ~670 MB
+ollama pull qwen3.5:4b                   # LLM rerank, ~2.4 GB
 
-# 3. opencode-router
-git clone https://github.com/AdrianCsT/opencode-router.git ~/opencode-router
-cd ~/opencode-router
+# 3. opencode-router (idempotent)
+if [ -d ~/opencode-router ]; then
+  cd ~/opencode-router && git pull
+else
+  git clone https://github.com/AdrianCsT/opencode-router.git ~/opencode-router
+  cd ~/opencode-router
+fi
 python3 -m pip install -e ".[dev]"
 
-# 4. Import agents + configure
-# If you already have agents, back up your config first:
+# 4. Backup existing config, import agents, configure
 cp ~/.config/opencode/opencode.json ~/.config/opencode/opencode.json.bak 2>/dev/null || true
 bash scripts/import-agents.sh
 cp examples/router-prompts/default.md ~/.config/opencode/agents/router.md
-opencode-router init   # also auto-creates opencode.json.backup-<timestamp>
+opencode-router init   # auto-creates opencode.json.backup-<timestamp>
 
 # 5. Verify
 opencode-router doctor
@@ -33,13 +41,13 @@ python3 -m unittest discover -s tests -v
 
 ## Toolchain
 
-| Tool | Version | Install | Purpose |
-|------|---------|---------|---------|
-| Python | ≥ 3.10 | `brew install python@3.12` | Runtime |
-| Ollama | latest | `brew install ollama` | Local embeddings + LLM rerank |
-| OpenCode | ≥ 1.14.20 | `npm i -g opencode` or [opencode.ai](https://opencode.ai) | Agent TUI |
-| Claude Code | latest | `npm i -g @anthropic-ai/claude-code` | CLI agent (optional) |
-| Hermes | latest | [ECC plugin](https://github.com/everything-claude-code/everything-claude-code) | Agent orchestration (optional) |
+| Tool | Version | macOS | Linux | Windows |
+|------|---------|------|-------|---------|
+| Python | ≥ 3.10 | `brew install python@3.12` | `apt install python3.12` | `winget install Python.Python.3.12` |
+| Ollama | latest | `brew install ollama` | `curl -fsSL https://ollama.com/install.sh \| sh` | `winget install Ollama.Ollama` |
+| OpenCode | ≥ 1.14.20 | `npm i -g opencode` or [opencode.ai](https://opencode.ai) | same | same |
+| Claude Code | latest | `npm i -g @anthropic-ai/claude-code` | same | same |
+| Hermes | latest | [ECC plugin](https://github.com/everything-claude-code/everything-claude-code) | same | same |
 
 ### Ollama models
 
