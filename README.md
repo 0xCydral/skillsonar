@@ -5,9 +5,38 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
 [![Version](https://img.shields.io/badge/version-0.3.3-blue)](https://github.com/AdrianCsT/opencode-router/releases)
 
-> Open `opencode`, type a task, the router dispatches it to the right
-> specialist. 233 agents. Two-stage semantic routing. Local-first.
-> Multi-step DAG orchestration. 105K curated skills.
+> Open `opencode`, type a task, and the router dispatches it to the right
+> specialist from a catalog of 233 agents. Two-stage semantic routing
+> (embeddings + LLM rerank). Multi-step DAG orchestration with 105K skills.
+> Project memory so agents skip exploration. **Local-first, zero config.**
+
+---
+
+## For your agent
+
+Paste this block into Claude Code, OpenCode, or any LLM agent. Let the
+agent do it — humans fat-finger configs.
+
+```
+Install and configure opencode-router by reading the setup guide at
+https://raw.githubusercontent.com/AdrianCsT/opencode-router/main/AGENTS.md
+
+Then verify with:
+  opencode-router doctor
+  opencode-router memory rebuild --force
+```
+
+**Agents reading this directly:** fetch the full setup guide.
+
+```bash
+curl -s https://raw.githubusercontent.com/AdrianCsT/opencode-router/main/AGENTS.md
+```
+
+[AGENTS.md](AGENTS.md) covers the full dev environment: Python, Ollama,
+OpenCode, Claude Code, Hermes, agent import, provider profiles, project
+memory, and AgentSkillOS.
+
+---
 
 ## What it does
 
@@ -20,61 +49,28 @@
     technical-writer → done
 ```
 
-No `/agent` switching. No memorising 233 agent names. No wondering which
-specialist fits. The router picks the right agent, injects project memory
-so the agent already knows the codebase, and records the dispatch so
-future runs learn from past work.
+No `/agent` switching. No memorising agent names. The router picks the
+right specialist, injects project context so the agent already knows the
+codebase, and records the dispatch so future runs learn from past work.
 
-## Setup (paste this into your agent)
+## Quick install
+
+If you're setting up by hand instead of using an agent:
 
 ```bash
-# 1. Prerequisites — one-time
-brew install python@3.12 ollama          # macOS
-ollama pull mxbai-embed-large            # embeddings, ~670 MB
-ollama pull qwen3.5:4b                   # LLM rerank, ~2.4 GB
-
-# 2. opencode-router
+brew install python@3.12 ollama
+ollama pull mxbai-embed-large qwen3.5:4b
 git clone https://github.com/AdrianCsT/opencode-router.git ~/opencode-router
-cd ~/opencode-router
-python3 -m pip install -e ".[dev]"
-
-# 3. Agents + router prompt
+cd ~/opencode-router && python3 -m pip install -e ".[dev]"
 bash scripts/import-agents.sh
 cp examples/router-prompts/default.md ~/.config/opencode/agents/router.md
 opencode-router init
-
-# 4. Verify
-opencode-router doctor
-opencode-router memory rebuild --force
 ```
 
-**Prerequisites:** OpenCode ≥ 1.14.20, Python ≥ 3.10, Ollama running
-locally, `~/.local/bin` on `PATH`. [Full install guide →](docs/installation.md)
+**Prerequisites:** OpenCode ≥ 1.14.20, Python ≥ 3.10, Ollama running.
 
-After setup, open `opencode` and type a task. The router handles everything.
-
-### Switching providers
-
-```bash
-opencode-router profile list          # see available
-opencode-router profile set <name>    # switch all 233 agents to a new provider
-```
-
-Shipped: `ollama-local`, `ollama-cloud`, `nvidia-nim`, `deepseek-official`.
-Add your own at `~/.config/opencode/orchestration-profile.json`.
-
-### Project memory
-
-Every project gets context auto-injected on dispatch:
-
-```bash
-opencode-router memory rebuild --force   # build now
-opencode-router memory log --tail 10     # dispatch history
-opencode-router memory inject "fix bug"  # debug: what gets injected
-```
-
-Memory is rebuilt when files change (≥10), git HEAD moves, or 24h elapse.
-[Full memory docs →](#docs)
+[Full installation guide →](docs/installation.md) ·
+[Configuration reference →](docs/configuration.md)
 
 ## How it works
 
@@ -84,20 +80,17 @@ You type a task in OpenCode
   ▼
 Router agent picks the right path
   │
-  ├── Simple task → opencode-router route --top-1 --json --with-memory
+  ├── Simple task → route --top-1 --json --with-memory
   │     ├── Embed task (mxbai-embed-large, Ollama, ~50ms)
   │     ├── Cosine top-10 over 233 agents (~10ms)
-  │     ├── LLM rerank top-10 (qwen3.5:4b, ~2s, role rules)
-  │     └── Returns: {agent, memory_brief}
+  │     ├── LLM rerank (qwen3.5:4b, ~2s, role rules)
+  │     └── Returns {agent, memory_brief}
   │
-  └── Complex task → opencode-router orchestrate
+  └── Complex task → orchestrate
         ├── Skill discovery (AgentSkillOS tree + 105K token index)
         ├── Agent routing per step
         ├── DAG planning (LLM decomposes into ordered steps)
-        └── Returns: [{step, agent, depends_on}]
-  │
-  ▼
-Router dispatches via OpenCode task tool (one per step)
+        └── Returns [{step, agent, depends_on}]
   │
   ▼
 Agent receives project memory + task → skips exploration → delivers
@@ -112,16 +105,15 @@ Dispatch recorded → future runs learn from past patterns
 
 | | |
 |---|---|
-| **Two-stage routing** | Embedding retrieval + LLM rerank. Neither stage alone reaches required accuracy. |
-| **Local-first** | Routing runs on Ollama. No network call for dispatch decisions. |
-| **Bring your own agents** | Zero bundled. Write `.md` files or import from open-source collections. |
-| **Bring your own provider** | Six abstract buckets map to real model paths. Switch in one command. |
-| **Project memory** | Agents receive file tree, symbols, conventions, and distilled patterns — skip exploration. |
-| **Multi-step orchestration** | DAG planning with dependency ordering. Skill catalog of 105K patterns. |
+| **Two-stage routing** | Embedding retrieval + LLM rerank. Neither stage alone is accurate enough. |
+| **Local-first** | Routing runs on Ollama. No network call for dispatch. |
+| **Project memory** | Agents receive file tree, symbols, conventions — skip exploration on every dispatch. |
 | **Episodic distillation** | Dispatch logs are LLM-distilled into reusable patterns for future agents. |
-| **Retrieval injection** | Large projects get header + top-5 relevant chunks via cosine search. |
-| **Provider profiles** | Switch all 233 agents to a new provider in one command. |
-| **No lock-in** | Remove the router from `default_agent` to disable. Everything lives in opencode.json. |
+| **Retrieval injection** | Large projects get header + top-5 relevant chunks via cosine search. ~89% token savings. |
+| **Provider profiles** | Switch all 233 agents between providers in one command. |
+| **Multi-step orchestration** | DAG planning with dependency ordering, 105K skill catalog. |
+| **Bring your own agents** | Zero bundled. Write `.md` files or import from open-source collections. |
+| **No lock-in** | Remove the router from `default_agent` to disable. Everything in opencode.json. |
 
 ## CLI
 
@@ -136,36 +128,51 @@ opencode-router doctor               Diagnose configuration
 opencode-router memory {show,rebuild,clear,inject,log,record}   Project memory
 ```
 
+## Provider profiles
+
+```bash
+opencode-router profile list          # ollama-local, ollama-cloud, nvidia-nim, deepseek-official
+opencode-router profile set <name>    # switch all 233 agents + re-apply models
+opencode-router profile current       # show active
+```
+
+Add your own at `~/.config/opencode/orchestration-profile.json`.
+[Profile docs →](docs/profiles.md)
+
+## Project memory
+
+```bash
+opencode-router memory rebuild --force   # build now
+opencode-router memory inject "fix bug"  # debug: what gets injected
+opencode-router memory log --tail 10     # dispatch history
+opencode-router memory clear             # start fresh
+```
+
+Memory auto-rebuilds when ≥10 files change, git HEAD moves, or 24h elapse.
+
 ## Configuration
 
 | File | Purpose |
 |---|---|
-| `~/.config/opencode/opencode.json` | Agent registry + model assignments (managed by init) |
+| `~/.config/opencode/opencode.json` | Agent registry + model assignments |
 | `~/.config/opencode/agents/router.md` | Router primary agent prompt |
 | `~/.config/opencode/agents/*.md` | Specialist subagents (BYO) |
 | `~/.config/opencode/agent-index.json` | Pre-computed embeddings |
 | `~/.config/opencode/orchestration-profile.json` | Provider profiles |
-| `~/.config/opencode/orchestration-rules.json` | Role-pattern → bucket rules (optional) |
+| `~/.config/opencode/orchestration-rules.json` | Role-pattern → bucket rules |
 | `<project>/.opencode-router/memory.md` | Project memory (auto-generated) |
+
+[Routing rules →](docs/routing-rules.md) ·
+[Creating agents →](docs/creating-agents.md) ·
+[FAQ →](docs/faq.md)
 
 ## Design
 
 - **Bring your own agents.** Zero bundled. Write or import.
-- **Bring your own provider.** Six buckets. Switch in one command.
-- **Bring your own rules.** Role patterns → bucket assignments are user-editable.
-- **Local-first.** Routing runs on Ollama. No network for dispatch.
+- **Bring your own provider.** Six buckets map to real model paths.
+- **Bring your own rules.** Role-pattern → bucket assignments are user-editable.
+- **Local-first.** Routing runs on Ollama. No network call for dispatch.
 - **No lock-in.** Remove the router to disable. No migration needed.
-
-## Docs
-
-[Installation](docs/installation.md) ·
-[Architecture](docs/architecture.md) ·
-[Configuration](docs/configuration.md) ·
-[Creating agents](docs/creating-agents.md) ·
-[Provider profiles](docs/profiles.md) ·
-[Routing rules](docs/routing-rules.md) ·
-[FAQ](docs/faq.md) ·
-[AGENTS.md](AGENTS.md) (dev environment for coding agents)
 
 ## License
 
