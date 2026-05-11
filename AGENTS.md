@@ -20,9 +20,11 @@ cd ~/opencode-router
 python3 -m pip install -e ".[dev]"
 
 # 4. Import agents + configure
+# If you already have agents, back up your config first:
+cp ~/.config/opencode/opencode.json ~/.config/opencode/opencode.json.bak 2>/dev/null || true
 bash scripts/import-agents.sh
 cp examples/router-prompts/default.md ~/.config/opencode/agents/router.md
-opencode-router init
+opencode-router init   # also auto-creates opencode.json.backup-<timestamp>
 
 # 5. Verify
 opencode-router doctor
