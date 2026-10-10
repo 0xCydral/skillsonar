@@ -49,6 +49,40 @@ def test_search_with_path_filter(index_dir, skills_dir, tmp_path, capsys):
     assert "kubernetes-pod-debugging" in capsys.readouterr().out
 
 
+def test_duplicate_skills_show_once_with_their_other_folders(tmp_path, capsys):
+    for root in ("first", "second"):
+        folder = tmp_path / root / "one"
+        folder.mkdir(parents=True)
+        (folder / "SKILL.md").write_text("---\nname: one\ndescription: Alpha widget.\n---\n", encoding="utf-8")
+    index = tmp_path / "idx"
+    paths = ["--path", str(tmp_path / "first"), "--path", str(tmp_path / "second")]
+    assert main(["build", *paths, "--index", str(index)]) == 0
+    assert main(["search", "alpha widget", "--index", str(index)]) == 0
+    out = capsys.readouterr().out
+    assert out.count("1. one") == 1
+    assert "2. " not in out
+    assert "also in: 1 other folder(s)" in out
+    assert main(["search", "alpha widget", "--json", "--index", str(index)]) == 0
+    rows = json.loads(capsys.readouterr().out)
+    assert len(rows) == 1
+    assert len(rows[0]["also"]) == 1
+    assert main(["stats", "--index", str(index)]) == 0
+    assert "duplicates collapsed: 1" in capsys.readouterr().out
+
+
+def test_embeddings_follow_the_collapsed_entries(tmp_path, fake_ollama, capsys):
+    for root in ("first", "second"):
+        folder = tmp_path / root / "one"
+        folder.mkdir(parents=True)
+        (folder / "SKILL.md").write_text("---\nname: one\ndescription: Alpha widget.\n---\n", encoding="utf-8")
+    index = tmp_path / "idx"
+    paths = ["--path", str(tmp_path / "first"), "--path", str(tmp_path / "second")]
+    assert main(["build", *paths, "--index", str(index), "--embed"]) == 0
+    assert "embedded 1 skills" in capsys.readouterr().out
+    assert main(["search", "alpha widget", "--hybrid", "--index", str(index)]) == 0
+    assert capsys.readouterr().out.startswith("1. one")
+
+
 def test_missing_index_is_a_clean_error(tmp_path, capsys):
     assert main(["search", "anything", "--index", str(tmp_path / "none")]) == 1
     err = capsys.readouterr().err

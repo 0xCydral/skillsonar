@@ -53,3 +53,6 @@ coverage.xml
 
 # Local skillsonar indexes
 .skillsonar/
+
+# Demo index from the README
+.demo/

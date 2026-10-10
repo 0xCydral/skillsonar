@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -43,6 +44,18 @@ def test_same_folder_through_two_roots_is_indexed_once(tmp_path):
     assert len(scan([tmp_path, tmp_path / "a"])) == 1
 
 
+def test_same_name_in_two_roots_collapses_to_the_first(tmp_path):
+    first, second = tmp_path / "first", tmp_path / "second"
+    write_skill(first, "one", "---\nname: one\ndescription: Alpha skill.\n---\n")
+    write_skill(second, "copy", "---\nname: one\ndescription: Alpha skill.\n---\n")
+    write_skill(second, "two", "---\nname: two\ndescription: Beta skill.\n---\n")
+    entries = scan([first, second])
+    assert [e["name"] for e in entries] == ["one", "two"]
+    assert entries[0]["path"] == str((first / "one").resolve())
+    assert [Path(p).name for p in entries[0]["also"]] == ["copy"]
+    assert "also" not in entries[1]
+
+
 def test_missing_root_is_ignored(tmp_path):
     assert scan([tmp_path / "nope"]) == []
 
@@ -82,6 +95,15 @@ def test_name_match_adds_a_bonus(tmp_path):
     write_skill(tmp_path, "b", "---\nname: other\ndescription: Terraform infrastructure code.\n---\n")
     ranked = keyword_rank(scan([tmp_path]), "terraform infrastructure")
     assert [e["name"] for e, _ in ranked] == ["terraform", "other"]
+
+
+def test_rare_word_outranks_two_common_ones(tmp_path):
+    write_skill(tmp_path, "a", "---\nname: first\ndescription: Fix every failing test.\n---\n")
+    for letter in "bcdef":
+        write_skill(tmp_path, letter, f"---\nname: filler-{letter}\ndescription: Fix any failing test.\n---\n")
+    write_skill(tmp_path, "z", "---\nname: browser\ndescription: Drive playwright scripts.\n---\n")
+    ranked = keyword_rank(scan([tmp_path]), "fix test playwright")
+    assert ranked[0][0]["name"] == "browser"
 
 
 def test_query_with_no_overlap_returns_nothing(skills_dir):

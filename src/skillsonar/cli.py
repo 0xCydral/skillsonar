@@ -96,17 +96,21 @@ def cmd_search(args) -> int:
     results = searcher.search(args.query, mode, args.top, reranker, args.pool)
     if args.json:
         rows = [{"name": e["name"], "score": round(s, 4), "source": e["source"],
-                 "path": e["path"], "desc": e["desc"]} for e, s in results]
+                 "path": e["path"], "desc": e["desc"]} | ({"also": e["also"]} if e.get("also") else {})
+                for e, s in results]
         print(json.dumps(rows, ensure_ascii=False, indent=2))
         return 0
     if not results:
         print("no matches")
     for rank, (entry, score) in enumerate(results, 1):
         desc = " ".join(entry["desc"].split())
-        print(f"{rank}. {entry['name']}  (score {score:.4g})")
+        shown = f"{score:.2f}" if mode == "keyword" else f"{score:.4g}"
+        print(f"{rank}. {entry['name']}  (score {shown})")
         if desc:
             print(f"   {desc[:110]}{'...' if len(desc) > 110 else ''}")
         print(f"   {display(entry['path'])}")
+        if entry.get("also"):
+            print(f"   also in: {len(entry['also'])} other folder(s)")
     return 0
 
 
@@ -116,6 +120,7 @@ def cmd_stats(args) -> int:
     print(f"index: {display(str((directory / 'index.json').resolve()))}")
     print(f"built: {index.get('built_at', 'unknown')}")
     print(f"skills: {index['count']}")
+    print(f"duplicates collapsed: {sum(len(e.get('also', [])) for e in index['entries'])}")
     for source, count in sorted(Counter(e["source"] for e in index["entries"]).items()):
         print(f"  {source}: {count}")
     embeddings = directory / EMBEDDINGS_FILE

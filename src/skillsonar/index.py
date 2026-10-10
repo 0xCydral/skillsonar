@@ -2,15 +2,18 @@
 
 A skill is a directory holding a SKILL.md with YAML frontmatter (name, description). The index
 keeps, per skill, the stemmed token set of its name, description and trigger text. A query is
-scored by how many of its tokens a skill contains, with a bonus when a token is in the name.
+scored by the tokens a skill shares with it, each weighted by how rare it is across the catalog,
+with a bonus when a token is in the name. Skills sharing a name are collapsed to the first one.
 """
 
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import time
+from collections import Counter
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -124,8 +127,13 @@ def make_entry(skill_dir: Path, source: str) -> dict | None:
 
 
 def scan(roots: list[Path]) -> list[dict]:
-    """Index every skill under the given roots. A skill reached twice is indexed once."""
+    """Index every skill under the given roots. A skill reached twice is indexed once.
+
+    Skills sharing a name are collapsed to the first one found, in root order. The other
+    locations are kept on that entry as `also` (display paths), so nothing is silently dropped.
+    """
     entries: list[dict] = []
+    by_name: dict[str, dict] = {}
     seen: set[Path] = set()
     for root in roots:
         if not root.is_dir():
@@ -137,7 +145,13 @@ def scan(roots: list[Path]) -> list[dict]:
                 continue
             seen.add(resolved)
             entry = make_entry(resolved, source)
-            if entry:
+            if not entry:
+                continue
+            kept = by_name.get(entry["name"])
+            if kept:
+                kept.setdefault("also", []).append(display(entry["path"]))
+            else:
+                by_name[entry["name"]] = entry
                 entries.append(entry)
     return entries
 
@@ -169,14 +183,22 @@ def load_index(directory: Path) -> dict:
 
 
 def keyword_rank(entries: list[dict], query: str) -> list[tuple[dict, float]]:
-    """Every entry sharing a token with the query, best first. Ties keep index order."""
-    terms = tokenize(query)
+    """Every entry sharing a token with the query, best first. Ties keep index order.
+
+    A shared token is worth idf = log(1 + N / df), where df counts the entries that hold it, so a
+    word every skill uses adds little and a word few skills use adds a lot. A token that is also in
+    the skill's name counts three times (its idf plus a name bonus of 2 * idf).
+    """
+    terms = sorted(tokenize(query))
+    token_sets = [set(entry["tokens"]) for entry in entries]
+    df = Counter(t for tokens in token_sets for t in terms if t in tokens)
+    idf = {t: math.log(1 + len(entries) / n) for t, n in df.items()}
     scored = []
-    for entry in entries:
-        score = len(terms & set(entry["tokens"]))
-        if score:
-            if terms & tokenize(entry["name"]):
-                score += 2
-            scored.append((entry, float(score)))
+    for entry, tokens in zip(entries, token_sets, strict=True):
+        shared = [t for t in terms if t in tokens]
+        if shared:
+            in_name = tokenize(entry["name"])
+            score = sum(idf[t] * (3 if t in in_name else 1) for t in shared)
+            scored.append((entry, score))
     scored.sort(key=lambda pair: -pair[1])
     return scored
