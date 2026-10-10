@@ -14,7 +14,9 @@ Renamed from `opencode-router` to `skillsonar`. The project is now a skill searc
 ### Added
 - `skillsonar` command (also `python -m skillsonar`) with `build`, `search`, `stats` and `eval`.
 - Keyword index over any folder tree containing `SKILL.md`, with a small stemmer and stopword list.
-  Parses `description: |` and `description: >` block scalars.
+  Parses `description: |` and `description: >` block scalars. Each shared word is weighted by its
+  rarity across the catalog (IDF, log(1 + N / df)) and counts three times when it is in the skill's
+  name, so common words do not decide the order. Scores are decimals, printed with two places.
 - Optional embeddings through Ollama (`bge-m3` by default) and hybrid ranking by reciprocal rank
   fusion (`search --semantic`, `search --hybrid`, `build --embed`).
 - Optional rerank through any OpenAI-compatible chat endpoint (`search --rerank`).
@@ -23,6 +25,9 @@ Renamed from `opencode-router` to `skillsonar`. The project is now a skill searc
 - Index stored in the user cache directory, overridable with `--index`.
 - Skill folders from `--path`, `SKILLSONAR_PATHS`, or the usual Claude Code, OpenCode and shared
   agent skill directories.
+- Skills with the same name in several folders are collapsed to the first one found. The other
+  locations are kept as `also` (shown as `also in: N other folder(s)`, listed in `search --json`),
+  and `stats` reports how many duplicates were collapsed.
 
 ### Removed
 - Agent routing, rules, provider profiles, the `opencode.json` patcher, DAG orchestration,

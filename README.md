@@ -38,7 +38,7 @@ indexed 21 skills from 1 folder(s) -> .demo/index.json
 embedded 21 skills with bge-m3 -> .demo/embeddings.json
 
 $ skillsonar search "my pod keeps restarting"
-1. kubernetes-pod-debugging  (score 4)
+1. kubernetes-pod-debugging  (score 12.36)
    Diagnose Kubernetes pods that crash, restart repeatedly or stay Pending. Covers kubectl describe, logs, events...
    tests/fixtures/skills/kubernetes-pod-debugging
 ```
@@ -50,7 +50,7 @@ search puts the Kubernetes skill second:
 
 ```console
 $ skillsonar search "container got killed for using too much memory" --top 3
-1. memory-leak-profiling  (score 3)
+1. memory-leak-profiling  (score 9.27)
    Find memory leaks in long-running Node.js and Python services. Take heap snapshots, compare them over time and...
    tests/fixtures/skills/memory-leak-profiling
 
@@ -77,7 +77,7 @@ $ skillsonar search "my pod keeps restarting" --json --top 1
 [
   {
     "name": "kubernetes-pod-debugging",
-    "score": 4.0,
+    "score": 12.3642,
     "source": "tests/fixtures/skills",
     "path": "/home/you/skills/kubernetes-pod-debugging",
     "desc": "Diagnose Kubernetes pods that crash, restart repeatedly or stay Pending. Covers kubectl describe, logs, events, OOMKilled and CrashLoopBackOff."
@@ -88,8 +88,9 @@ $ skillsonar search "my pod keeps restarting" --json --top 1
 ```console
 $ skillsonar stats
 index: .demo/index.json
-built: 2026-10-10T13:18:07-0500
+built: 2026-10-10T13:55:12-0500
 skills: 21
+duplicates collapsed: 0
   tests/fixtures/skills: 21
 embeddings: bge-m3, 21 vectors
 ```
@@ -114,9 +115,16 @@ query --> embedding similarity --+
 ```
 
 - **Keyword index.** Each skill becomes the set of stemmed words in its name, description and
-  `when_to_use` text (or the first lines of the body when there is none). A query scores one point
-  per shared word, plus two when a word is in the skill's name. Frontmatter block scalars
-  (`description: |` and `description: >`) are parsed.
+  `when_to_use` text (or the first lines of the body when there is none). A query scores every word
+  it shares with a skill, and a word counts for more the fewer skills contain it: "test" appears
+  everywhere and adds little, "playwright" appears in a few and adds a lot (the weight is
+  log(1 + N / df), N skills in the catalog, df of them holding the word). A word that is also in
+  the skill's name counts three times. Frontmatter block scalars (`description: |` and
+  `description: >`) are parsed.
+- **Duplicates.** The same skill is often copied into several folders (`~/.claude/skills`,
+  `~/.agents/skills`, ...). Skills with the same name are collapsed to the first one found, in the
+  order of the folders under Usage. Results show `also in: N other folder(s)` for it, `--json` lists
+  those locations under `also`, and `stats` counts how many copies were collapsed.
 - **Embeddings (optional).** `build --embed` sends each skill's name, description, headings and
   opening prose to an Ollama embeddings model. `--semantic` ranks by cosine similarity. `--hybrid`
   fuses the keyword and embedding rankings with reciprocal rank fusion (k = 60).
@@ -154,21 +162,21 @@ fixture skills in `tests/fixtures/skills`. Measured on 2026-10-10, k = 5:
 
 | Mode | recall@5 | top-1 correct |
 |---|---|---|
-| keyword | 0.857 | 18 of 28 |
+| keyword | 0.857 | 19 of 28 |
 | semantic (bge-m3) | 0.964 | 25 of 28 |
-| hybrid | 1.000 | 21 of 28 |
+| hybrid | 0.964 | 24 of 28 |
 
 Reproduce:
 
 ```bash
 skillsonar build --path tests/fixtures/skills --index .demo --embed
-skillsonar eval evals/queries.jsonl --index .demo --mode hybrid
+skillsonar eval evals/queries.jsonl --index .demo --mode keyword   # or semantic, hybrid
 ```
 
 The catalog is 21 skills, the author wrote both the queries and the skills, and each query has one
 expected skill. The table compares the three modes on the same data. It does not predict recall on
 a catalog of hundreds of real skills with overlapping descriptions. The semantic and hybrid rows
-used bge-m3 through the default `OLLAMA_HOST`. Point `eval` at your own index and your own queries
+used bge-m3 through a local Ollama server. Point `eval` at your own index and your own queries
 for a number that applies to you.
 
 ## Formerly opencode-router
