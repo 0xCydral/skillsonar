@@ -58,7 +58,9 @@ def restriction(flags: list[str]):
     roots = [Path(p).expanduser().resolve() for p in flags]
     if not roots:
         return None
-    return lambda entry: any(Path(entry["path"]).is_relative_to(r) for r in roots)
+    return lambda entry: any(
+        Path(p).is_relative_to(r) for p in [entry["path"], *entry.get("also", [])] for r in roots
+    )
 
 
 def make_searcher(args) -> Searcher:

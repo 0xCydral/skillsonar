@@ -68,6 +68,9 @@ def test_duplicate_skills_show_once_with_their_other_folders(tmp_path, capsys):
     assert len(rows[0]["also"]) == 1
     assert main(["stats", "--index", str(index)]) == 0
     assert "duplicates collapsed: 1" in capsys.readouterr().out
+    # --path matches a collapsed skill through any of its copies, not only the kept one.
+    assert main(["search", "alpha widget", "--path", str(tmp_path / "second"), "--index", str(index)]) == 0
+    assert "1. one" in capsys.readouterr().out
 
 
 def test_embeddings_follow_the_collapsed_entries(tmp_path, fake_ollama, capsys):

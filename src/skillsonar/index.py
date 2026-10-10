@@ -130,7 +130,7 @@ def scan(roots: list[Path]) -> list[dict]:
     """Index every skill under the given roots. A skill reached twice is indexed once.
 
     Skills sharing a name are collapsed to the first one found, in root order. The other
-    locations are kept on that entry as `also` (display paths), so nothing is silently dropped.
+    locations are kept on that entry as `also` (absolute paths, like `path`), so nothing is silently dropped.
     """
     entries: list[dict] = []
     by_name: dict[str, dict] = {}
@@ -149,7 +149,7 @@ def scan(roots: list[Path]) -> list[dict]:
                 continue
             kept = by_name.get(entry["name"])
             if kept:
-                kept.setdefault("also", []).append(display(entry["path"]))
+                kept.setdefault("also", []).append(entry["path"])
             else:
                 by_name[entry["name"]] = entry
                 entries.append(entry)
