@@ -51,10 +51,5 @@ coverage.xml
 .ruff_cache/
 .mypy_cache/
 
-# Local opencode state — never commit
-.opencode/
-*.opencode.json
-agent-index.json
-orchestration-profile.json
-orchestration-rules.json
-docs/*-plan.md
+# Local skillsonar indexes
+.skillsonar/

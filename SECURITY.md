@@ -1,28 +1,20 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-| Version | Supported |
-|---|---|
-| 0.1.x   | ✅ |
+Only the latest release receives fixes.
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
-Please **do not** open a public issue for security vulnerabilities.
+Do not open a public issue. Use GitHub's private vulnerability reporting on this repository
+("Security" tab, "Report a vulnerability"). Include a description, steps to reproduce and the
+affected version. You should get a first reply within 72 hours.
 
-Report vulnerabilities privately to the maintainers. Include:
+## What the tool does with your data
 
-- A clear description of the vulnerability
-- Steps to reproduce
-- Affected versions
-- Any suggested mitigations
-
-You should receive an initial response within 72 hours.
-
-## Scope
-
-This project's security model:
-
-- No outbound network calls — the reranker hits a local Ollama endpoint only.
-- `opencode.json` patching preserves existing keys and creates backups before writing.
-- No telemetry, no analytics, no third-party network dependencies.
+- `build` and `search` read `SKILL.md` files and write the index to your user cache directory.
+- Network calls happen only when you ask for them. `build --embed`, `--semantic` and `--hybrid`
+  send skill text and queries to the server named by `OLLAMA_HOST` (a local Ollama by default).
+  `--rerank` sends the query and the shortlisted skill names and descriptions to the endpoint in
+  `SKILLSONAR_RERANK_BASE_URL`, with `SKILLSONAR_RERANK_API_KEY` as the bearer token when set.
+- No telemetry and no update checks.

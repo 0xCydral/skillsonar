@@ -1,25 +1,17 @@
 ## Summary
 
-<!-- What does this PR do? One paragraph. -->
+<!-- What does this change, and why? -->
 
 ## Test plan
 
-<!-- How did you verify? What should reviewers test? -->
+<!-- How did you check it? -->
 
-- [ ] Unit tests pass
-- [ ] `opencode-router doctor` is clean
-- [ ] Manual test with `opencode-router route "<query>"`
-
-## Type
-
-- [ ] Bug fix
-- [ ] Feature
-- [ ] Docs / examples
-- [ ] Refactor (no behavior change)
+- [ ] `python -m pytest -q` passes
+- [ ] `python -m ruff check .` passes
+- [ ] Ran the changed command against a real skill folder
 
 ## Checklist
 
-- [ ] I read [CONTRIBUTING.md](CONTRIBUTING.md)
-- [ ] Tests added for new logic
+- [ ] Tests added for new logic, with outside services stubbed
 - [ ] No new runtime dependencies
-- [ ] Backwards-compatible
+- [ ] README or CHANGELOG updated when behavior changes

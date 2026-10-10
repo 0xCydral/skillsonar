@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-10
+
+Renamed from `opencode-router` to `skillsonar`. The project is now a skill search tool.
+
+### Added
+- `skillsonar` command (also `python -m skillsonar`) with `build`, `search`, `stats` and `eval`.
+- Keyword index over any folder tree containing `SKILL.md`, with a small stemmer and stopword list.
+  Parses `description: |` and `description: >` block scalars.
+- Optional embeddings through Ollama (`bge-m3` by default) and hybrid ranking by reciprocal rank
+  fusion (`search --semantic`, `search --hybrid`, `build --embed`).
+- Optional rerank through any OpenAI-compatible chat endpoint (`search --rerank`).
+- `eval` command that prints recall@k for a JSONL file of queries, and a public query set in
+  `evals/queries.jsonl`.
+- Index stored in the user cache directory, overridable with `--index`.
+- Skill folders from `--path`, `SKILLSONAR_PATHS`, or the usual Claude Code, OpenCode and shared
+  agent skill directories.
+
+### Removed
+- Agent routing, rules, provider profiles, the `opencode.json` patcher, DAG orchestration,
+  project memory, `install.sh`, example agents and the related docs. Routing was dropped because the
+  first choice was correct on only 19 of 30 test queries.
+- The `opencode-router` console script. Use `skillsonar`.
+
 ## [0.3.3] — 2026-05-11
 
 ### Added
@@ -89,5 +112,6 @@ Initial release.
 - Idempotent `install.sh`.
 - Unit test suite for agent parsing, rules engine, profile management, cosine similarity.
 
-[Unreleased]: https://github.com/0xCydral/opencode-router/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/0xCydral/skillsonar/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/0xCydral/skillsonar/releases/tag/v0.4.0
 [0.1.0]: https://github.com/0xCydral/opencode-router/releases/tag/v0.1.0

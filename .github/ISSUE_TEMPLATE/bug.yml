@@ -1,34 +1,25 @@
 name: Bug report
-description: Something isn't working
+description: Something is not working
 labels: [bug, triage]
 body:
   - type: textarea
     attributes:
       label: What happened?
-      description: Steps to reproduce, expected vs actual behavior.
+      description: The command you ran, what you expected and what you got.
     validations:
       required: true
   - type: input
     attributes:
-      label: opencode-router version
-      description: Output of `opencode-router --version`
+      label: skillsonar version
+      description: Output of `skillsonar --version`
     validations:
       required: true
   - type: input
     attributes:
-      label: OpenCode version
-      description: Output of `opencode --version`
-    validations:
-      required: true
-  - type: input
-    attributes:
-      label: Ollama version
-      description: Output of `ollama --version`
+      label: Python version and operating system
     validations:
       required: true
   - type: textarea
     attributes:
-      label: `opencode-router doctor` output
-      description: Run it and paste the full output.
-    validations:
-      required: true
+      label: Output of `skillsonar stats`
+      description: Optional. Helps when results look wrong.

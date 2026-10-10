@@ -1,75 +1,52 @@
 # Contributing
 
-Thanks for your interest. Pull requests, issues, and discussions are
-all welcome.
+Issues and pull requests are welcome.
 
-## Quick start
+## Set up
 
 ```bash
-git clone https://github.com/0xCydral/opencode-router.git
-cd opencode-router
-python3 -m pip install --user -e ".[dev]"
-python3 -m unittest discover -s tests
+git clone https://github.com/0xCydral/skillsonar.git
+cd skillsonar
+python -m pip install -e ".[dev]"
+python -m pytest -q
+python -m ruff check .
 ```
 
-## What needs work
+## Pull requests
 
-A non-exhaustive list:
+1. One concern per pull request.
+2. Add tests for new logic. Tests use pytest and never touch the network: stub `OllamaClient` and
+   `RerankClient` (see `tests/conftest.py`).
+3. No new runtime dependencies. The core is standard library only.
+4. Keep every outside service behind its one client class (`ollama.py`, `rerank.py`). Other
+   modules ask for embeddings or a ranking, and never build a URL or read a key.
+5. Run `python -m ruff check .` before pushing.
 
-- **Wider provider coverage** — additional starter profiles for
-  providers we don't yet ship (Anthropic, OpenAI, Together, etc.).
-- **Claude Code adapter** — equivalent of the `register` command for
-  Claude Code's subagent format.
-- **Additional embedding/rerank models** — verified working
-  combinations, with notes on accuracy/latency tradeoffs.
-- **Bigger test suite** — particularly route-level integration tests
-  that mock Ollama.
-- **Better defaults** — more sensible default rules without becoming
-  opinionated about specific agent collections.
+## Where to start
 
-## Pull request guidelines
-
-1. **One concern per PR.** Don't bundle a feature with an unrelated
-   refactor.
-2. **Tests for new logic.** Use `unittest` from the stdlib — no extra
-   test deps. Mock Ollama when needed.
-3. **No new runtime dependencies** without strong justification. The
-   package is stdlib-only by design.
-4. **Backwards-compatible config schemas.** If you add a field, make
-   it optional and document the default.
-5. **Follow existing style.** `ruff check src/` should pass.
+- Ranking quality: new queries for `evals/queries.jsonl`, or fixture skills that expose a weakness.
+- Skill folders used by other agents that `skillsonar build` should look in by default.
+- Measurements of `--rerank` with a real model, reported with the model and the query set.
 
 ## Reporting issues
 
-Include:
+Include the output of `skillsonar --version`, your Python version and operating system, the exact
+command, and the full error. For embeddings problems, add the output of `ollama list`.
 
-- OpenCode version (`opencode --version`)
-- Python version (`python3 --version`)
-- Ollama version (`ollama --version`) and whether the daemon is running
-- The exact `opencode-router` command you ran
-- Full error output (or last 30 lines)
-- Output of `opencode-router doctor`
-
-## Code organisation
+## Code layout
 
 ```
-src/opencode_router/
-├── __init__.py            # version
-├── __main__.py            # python -m opencode_router
-├── cli.py                 # arg parser + subcommand dispatch
-├── paths.py               # filesystem paths (env-var overridable)
-├── ollama.py              # tiny stdlib HTTP client
-├── agents.py              # parse .md frontmatter + body
-├── index.py               # build/search the embedding index
-├── route.py               # two-stage routing (retrieve + rerank)
-├── rules.py               # role-pattern → bucket
-├── profile.py             # provider profile load/save/set
-└── opencode.py            # opencode.json patcher
+src/skillsonar/
+  cli.py        argument parsing and output
+  index.py      SKILL.md parsing, scanning, keyword scoring
+  semantic.py   embedding index and cosine ranking
+  search.py     keyword, semantic and hybrid modes, rerank pipeline
+  evaluate.py   recall@k
+  ollama.py     OllamaClient, the only code that talks to Ollama
+  rerank.py     RerankClient, the only code that talks to the rerank model
+  paths.py      default skill folders and the cache directory
 ```
-
-Each module is small and focused. Keep it that way.
 
 ## License
 
-By contributing, you agree your contributions are licensed under the
-[MIT License](LICENSE).
+By contributing, you agree your contributions are licensed under the [MIT License](LICENSE).

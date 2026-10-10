@@ -1,188 +1,193 @@
-# opencode-router
+# skillsonar
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://github.com/0xCydral/opencode-router/actions/workflows/test.yml/badge.svg)](https://github.com/0xCydral/opencode-router/actions/workflows/test.yml)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
-[![Version](https://img.shields.io/badge/version-0.3.3-blue)](https://github.com/0xCydral/opencode-router/releases)
+Find the right agent skill for a task by describing the task, not by remembering the skill's name.
 
-> Open `opencode`, type a task, and the router dispatches it to the right
-> specialist from a catalog of 233 agents. Two-stage semantic routing
-> (embeddings + LLM rerank). Multi-step DAG orchestration with 105K skills.
-> Project memory so agents skip exploration. **Local-first, zero config.**
+[![tests](https://github.com/0xCydral/skillsonar/actions/workflows/test.yml/badge.svg)](https://github.com/0xCydral/skillsonar/actions/workflows/test.yml)
+![python](https://img.shields.io/badge/python-3.10%2B-blue)
+![license](https://img.shields.io/badge/license-MIT-green)
 
----
+## The problem
 
-## For your agent
+Claude Code, OpenCode, Codex and similar agents load skills: folders with a `SKILL.md` that says
+what the skill does. After a few months you have dozens, spread over several directories, and the
+one you need is the one whose name you forgot. `skillsonar` indexes every `SKILL.md` it can find
+and ranks them against a sentence like "my pod keeps restarting".
 
-Paste this block into Claude Code, OpenCode, or any LLM agent. Let the
-agent do it — humans fat-finger configs.
-
-```
-Install and configure opencode-router by reading the setup guide at
-https://raw.githubusercontent.com/0xCydral/opencode-router/main/AGENTS.md
-
-Then verify with:
-  opencode-router doctor
-  opencode-router memory rebuild --force
-```
-
-**Agents reading this directly:** fetch the full setup guide.
+## Install
 
 ```bash
-curl -s https://raw.githubusercontent.com/0xCydral/opencode-router/main/AGENTS.md
+pipx install git+https://github.com/0xCydral/skillsonar
+skillsonar build
+skillsonar search "my pod keeps restarting"
 ```
 
-[AGENTS.md](AGENTS.md) covers the full dev environment: Python, Ollama,
-OpenCode, Claude Code, Hermes, agent import, provider profiles, project
-memory, and AgentSkillOS.
+Python 3.10 or newer. The core has no dependencies. Embeddings and rerank are optional and need a
+service you run yourself (see "How it works").
 
----
+## Usage
 
-## What it does
+`build` scans these folders when they exist: `~/.claude/skills`, `~/.agents/skills`,
+`~/.config/opencode/skills`, and `./.claude/skills` and `./.opencode/skills` in the current
+directory. Use `--path DIR` (repeatable) or `SKILLSONAR_PATHS` to index other folders instead.
 
-```
-> fix N+1 queries in Django ORM
-  → routes to database-optimizer → done
+The examples below run against the 21 small skills in `tests/fixtures/skills`.
 
-> build a Kubernetes CI/CD pipeline with security scanning
-  → orchestrates a 5-step DAG across devops-automator, security-reviewer,
-    technical-writer → done
-```
+```console
+$ skillsonar build --path tests/fixtures/skills --embed
+indexed 21 skills from 1 folder(s) -> .demo/index.json
+embedded 21 skills with bge-m3 -> .demo/embeddings.json
 
-No `/agent` switching. No memorising agent names. The router picks the
-right specialist, injects project context so the agent already knows the
-codebase, and records the dispatch so future runs learn from past work.
-
-## Quick install
-
-If you're setting up by hand instead of using an agent. macOS, Linux, and
-Windows are all supported.
-
-```bash
-# Prerequisites (pick your platform)
-brew install python@3.12 ollama                         # macOS
-sudo apt install -y python3.12 python3-pip && curl -fsSL https://ollama.com/install.sh | sh  # Linux
-winget install Python.Python.3.12 Ollama.Ollama          # Windows
-
-# Start Ollama + pull models
-ollama serve &>/dev/null &
-ollama pull mxbai-embed-large qwen3.5:4b
-
-# Install opencode-router
-git clone https://github.com/0xCydral/opencode-router.git ~/opencode-router
-cd ~/opencode-router && python3 -m pip install -e ".[dev]"
-bash scripts/import-agents.sh
-cp examples/router-prompts/default.md ~/.config/opencode/agents/router.md
-opencode-router init
+$ skillsonar search "my pod keeps restarting"
+1. kubernetes-pod-debugging  (score 4)
+   Diagnose Kubernetes pods that crash, restart repeatedly or stay Pending. Covers kubectl describe, logs, events...
+   tests/fixtures/skills/kubernetes-pod-debugging
 ```
 
-**Prerequisites:** OpenCode ≥ 1.14.20, Python ≥ 3.10, Ollama running.
+Keyword search matches words. When the task and the skill describe the same problem in different
+words, add the embedding index. Here the query says "container got killed"; the Kubernetes skill
+says "OOMKilled" and "pods", so keyword search returns only a memory-profiling skill, and hybrid
+search puts the Kubernetes skill second:
 
-[Full installation guide →](docs/installation.md) ·
-[Configuration reference →](docs/configuration.md)
+```console
+$ skillsonar search "container got killed for using too much memory" --top 3
+1. memory-leak-profiling  (score 3)
+   Find memory leaks in long-running Node.js and Python services. Take heap snapshots, compare them over time and...
+   tests/fixtures/skills/memory-leak-profiling
+
+$ skillsonar search "container got killed for using too much memory" --hybrid --top 3
+1. memory-leak-profiling  (score 0.03252)
+   Find memory leaks in long-running Node.js and Python services. Take heap snapshots, compare them over time and...
+   tests/fixtures/skills/memory-leak-profiling
+2. kubernetes-pod-debugging  (score 0.01639)
+   Diagnose Kubernetes pods that crash, restart repeatedly or stay Pending. Covers kubectl describe, logs, events...
+   tests/fixtures/skills/kubernetes-pod-debugging
+3. api-rate-limiting  (score 0.01587)
+   Add rate limiting to an HTTP API with token bucket or sliding window counters, return 429 with Retry-After, an...
+   tests/fixtures/skills/api-rate-limiting
+```
+
+Scores from different modes are not comparable, and the third hybrid result is noise. Read the
+descriptions: the output is a shortlist.
+
+`--json` prints one object per result, for scripts and agents. The `path` is absolute (shortened
+here):
+
+```console
+$ skillsonar search "my pod keeps restarting" --json --top 1
+[
+  {
+    "name": "kubernetes-pod-debugging",
+    "score": 4.0,
+    "source": "tests/fixtures/skills",
+    "path": "/home/you/skills/kubernetes-pod-debugging",
+    "desc": "Diagnose Kubernetes pods that crash, restart repeatedly or stay Pending. Covers kubectl describe, logs, events, OOMKilled and CrashLoopBackOff."
+  }
+]
+```
+
+```console
+$ skillsonar stats
+index: .demo/index.json
+built: 2026-10-10T13:18:07-0500
+skills: 21
+  tests/fixtures/skills: 21
+embeddings: bge-m3, 21 vectors
+```
+
+Without an index, commands stop with a message that names the fix:
+
+```console
+$ skillsonar search "anything" --index nope
+skillsonar: no index at nope\index.json. Build one first: skillsonar build (add --path DIR to choose skill folders)
+```
 
 ## How it works
 
 ```
-You type a task in OpenCode
-  │
-  ▼
-Router agent picks the right path
-  │
-  ├── Simple task → route --top-1 --json --with-memory
-  │     ├── Embed task (mxbai-embed-large, Ollama, ~50ms)
-  │     ├── Cosine top-10 over 233 agents (~10ms)
-  │     ├── LLM rerank (qwen3.5:4b, ~2s, role rules)
-  │     └── Returns {agent, memory_brief}
-  │
-  └── Complex task → orchestrate
-        ├── Skill discovery (AgentSkillOS tree + 105K token index)
-        ├── Agent routing per step
-        ├── DAG planning (LLM decomposes into ordered steps)
-        └── Returns [{step, agent, depends_on}]
-  │
-  ▼
-Agent receives project memory + task → skips exploration → delivers
-  │
-  ▼
-Dispatch recorded → future runs learn from past patterns
+SKILL.md folders --> build --> index.json        stemmed tokens of name, description, trigger text
+                        |
+                        +-- --embed --> embeddings.json   one vector per skill (Ollama, bge-m3)
+
+query --> keyword score ---------+
+                                 +--> reciprocal rank fusion --> top N --> optional chat-model rerank
+query --> embedding similarity --+
 ```
 
-[Architecture diagram →](docs/architecture.md)
-
-## Highlights
-
-| | |
-|---|---|
-| **Two-stage routing** | Embedding retrieval + LLM rerank. Neither stage alone is accurate enough. |
-| **Local-first** | Routing runs on Ollama. No network call for dispatch. |
-| **Project memory** | Agents receive file tree, symbols, conventions — skip exploration on every dispatch. |
-| **Episodic distillation** | Dispatch logs are LLM-distilled into reusable patterns for future agents. |
-| **Retrieval injection** | Large projects get header + top-5 relevant chunks via cosine search. ~89% token savings. |
-| **Provider profiles** | Switch all 233 agents between providers in one command. |
-| **Multi-step orchestration** | DAG planning with dependency ordering, 105K skill catalog. |
-| **Bring your own agents** | Zero bundled. Write `.md` files or import from open-source collections. |
-| **No lock-in** | Remove the router from `default_agent` to disable. Everything in opencode.json. |
-
-## CLI
-
-```text
-opencode-router init                 One-shot: register + apply models + build index
-opencode-router route "<query>"      Find the best agent (--top-1, --json, --with-memory)
-opencode-router orchestrate "<t>"    Plan a multi-step DAG
-opencode-router profile {list,set,current,show}    Manage providers
-opencode-router models apply         Re-apply role → bucket → model assignments
-opencode-router index build          Re-embed all agents
-opencode-router doctor               Diagnose configuration
-opencode-router memory {show,rebuild,clear,inject,log,record}   Project memory
-```
-
-## Provider profiles
-
-```bash
-opencode-router profile list          # ollama-local, ollama-cloud, nvidia-nim, deepseek-official
-opencode-router profile set <name>    # switch all 233 agents + re-apply models
-opencode-router profile current       # show active
-```
-
-Add your own at `~/.config/opencode/orchestration-profile.json`.
-[Profile docs →](docs/profiles.md)
-
-## Project memory
-
-```bash
-opencode-router memory rebuild --force   # build now
-opencode-router memory inject "fix bug"  # debug: what gets injected
-opencode-router memory log --tail 10     # dispatch history
-opencode-router memory clear             # start fresh
-```
-
-Memory auto-rebuilds when ≥10 files change, git HEAD moves, or 24h elapse.
+- **Keyword index.** Each skill becomes the set of stemmed words in its name, description and
+  `when_to_use` text (or the first lines of the body when there is none). A query scores one point
+  per shared word, plus two when a word is in the skill's name. Frontmatter block scalars
+  (`description: |` and `description: >`) are parsed.
+- **Embeddings (optional).** `build --embed` sends each skill's name, description, headings and
+  opening prose to an Ollama embeddings model. `--semantic` ranks by cosine similarity. `--hybrid`
+  fuses the keyword and embedding rankings with reciprocal rank fusion (k = 60).
+- **Rerank (optional).** `--rerank` sends the first-stage shortlist (150 skills by default, name and
+  150 characters of description each) to a chat model in one call and keeps the order it returns.
+  It only reorders what the first stage found, so pair it with `--hybrid` on large catalogs. Rerank
+  is covered by unit tests with a stub; it has not been measured here.
 
 ## Configuration
 
-| File | Purpose |
-|---|---|
-| `~/.config/opencode/opencode.json` | Agent registry + model assignments |
-| `~/.config/opencode/agents/router.md` | Router primary agent prompt |
-| `~/.config/opencode/agents/*.md` | Specialist subagents (BYO) |
-| `~/.config/opencode/agent-index.json` | Pre-computed embeddings |
-| `~/.config/opencode/orchestration-profile.json` | Provider profiles |
-| `~/.config/opencode/orchestration-rules.json` | Role-pattern → bucket rules |
-| `<project>/.opencode-router/memory.md` | Project memory (auto-generated) |
+| Setting | Applies to | Default |
+|---|---|---|
+| `--path DIR` (repeatable) | `build`: folders to index. Other commands: only return skills under DIR | the folders listed under Usage |
+| `SKILLSONAR_PATHS` | `build`: folders to index, separated by `:` (`;` on Windows). Replaces the defaults, like `--path` | unset |
+| `--index DIR` | all commands: directory holding `index.json` and `embeddings.json` | `%LOCALAPPDATA%\skillsonar` on Windows, `$XDG_CACHE_HOME/skillsonar` or `~/.cache/skillsonar` elsewhere |
+| `--top N` | `search` | 5 |
+| `--json` | `search` | off |
+| `--semantic` / `--hybrid` | `search`: embedding-only or fused ranking (need `build --embed`) | keyword |
+| `--rerank`, `--pool N` | `search`: rerank the first `N` candidates with a chat model | off, 150 |
+| `--k N`, `--mode keyword\|semantic\|hybrid` | `eval` | 5, keyword |
+| `OLLAMA_HOST` | embeddings server | `http://127.0.0.1:11434` |
+| `SKILLSONAR_EMBED_MODEL` | embeddings model | `bge-m3` |
+| `SKILLSONAR_RERANK_BASE_URL` | OpenAI-compatible endpoint, for example `https://api.openai.com/v1` | none, required for `--rerank` |
+| `SKILLSONAR_RERANK_MODEL` | chat model name | none, required for `--rerank` |
+| `SKILLSONAR_RERANK_API_KEY` | bearer token, optional for local servers | unset |
 
-[Routing rules →](docs/routing-rules.md) ·
-[Creating agents →](docs/creating-agents.md) ·
-[FAQ →](docs/faq.md)
+## Evaluation
 
-## Design
+`skillsonar eval` reads a JSONL file with one `{"query": "...", "expected": ["skill-name"]}` object
+per line and prints recall@k: for each query, the share of its expected skills found in the top
+k, averaged over queries. It exits with an error if an expected name is not in the index.
 
-- **Bring your own agents.** Zero bundled. Write or import.
-- **Bring your own provider.** Six buckets map to real model paths.
-- **Bring your own rules.** Role-pattern → bucket assignments are user-editable.
-- **Local-first.** Routing runs on Ollama. No network call for dispatch.
-- **No lock-in.** Remove the router to disable. No migration needed.
+`evals/queries.jsonl` holds 28 queries written as symptoms ("my pod keeps restarting") against the 21
+fixture skills in `tests/fixtures/skills`. Measured on 2026-10-10, k = 5:
+
+| Mode | recall@5 | top-1 correct |
+|---|---|---|
+| keyword | 0.857 | 18 of 28 |
+| semantic (bge-m3) | 0.964 | 25 of 28 |
+| hybrid | 1.000 | 21 of 28 |
+
+Reproduce:
+
+```bash
+skillsonar build --path tests/fixtures/skills --index .demo --embed
+skillsonar eval evals/queries.jsonl --index .demo --mode hybrid
+```
+
+The catalog is 21 skills, the author wrote both the queries and the skills, and each query has one
+expected skill. The table compares the three modes on the same data. It does not predict recall on
+a catalog of hundreds of real skills with overlapping descriptions. The semantic and hybrid rows
+used bge-m3 through the default `OLLAMA_HOST`. The embedding rows used bge-m3 served through the
+default `OLLAMA_HOST`. Point `eval` at your own index and your own queries for a number that
+applies to you.
+
+## Formerly opencode-router
+
+skillsonar was `opencode-router` up to version 0.3.3. Version 0.4.0 removes the agent routing, task
+orchestration and project memory, because the routing step did not pick the right agent often enough
+to justify itself (first choice correct on 19 of 30 test queries), and keeps the skill search.
+
+## Development
+
+```bash
+git clone https://github.com/0xCydral/skillsonar
+cd skillsonar
+python -m pip install -e ".[dev]"
+python -m pytest -q
+python -m ruff check .
+```
 
 ## License
 
-[MIT](LICENSE)
+MIT. See [LICENSE](LICENSE). Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
