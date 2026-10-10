@@ -75,7 +75,7 @@ def cmd_build(args) -> int:
         raise SkillIndexError(f"no skills found (looked in: {checked}). Pass --path DIR.")
     directory = index_dir(args.index)
     target = save_index(directory, entries)
-    print(f"indexed {len(entries)} skills from {len(roots)} folder(s) -> {target}")
+    print(f"indexed {len(entries)} skills from {len(roots)} folder(s) -> {display(str(target.resolve()))}")
     if args.embed:
         client = OllamaClient.from_env()
 
@@ -85,7 +85,7 @@ def cmd_build(args) -> int:
         payload = build_embeddings(entries, client, progress)
         print(file=sys.stderr)
         target = save_embeddings(directory, payload)
-        print(f"embedded {payload['count']} skills with {payload['model']} -> {target}")
+        print(f"embedded {payload['count']} skills with {payload['model']} -> {display(str(target.resolve()))}")
     return 0
 
 
@@ -113,7 +113,7 @@ def cmd_search(args) -> int:
 def cmd_stats(args) -> int:
     directory = index_dir(args.index)
     index = load_index(directory)
-    print(f"index: {directory / 'index.json'}")
+    print(f"index: {display(str((directory / 'index.json').resolve()))}")
     print(f"built: {index.get('built_at', 'unknown')}")
     print(f"skills: {index['count']}")
     for source, count in sorted(Counter(e["source"] for e in index["entries"]).items()):
