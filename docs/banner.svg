@@ -1,18 +1,80 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="220" viewBox="0 0 960 220" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="240" viewBox="0 0 960 240" role="img" aria-labelledby="title desc">
   <title id="title">skillsonar</title>
-  <desc id="desc">skillsonar: skill search for coding agents.</desc>
+  <desc id="desc">A sonar scope with SKILL.md file nodes. The sweep passes over one node, lit amber, which becomes the first result of skillsonar search: skill search for coding agents.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0d1117"/>
-      <stop offset="1" stop-color="#1b2a3a"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#2dd4bf"/>
-      <stop offset="1" stop-color="#38bdf8"/>
-    </linearGradient>
+    <radialGradient id="scope" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#0d3a26"/>
+      <stop offset="1" stop-color="#071a12"/>
+    </radialGradient>
+    <clipPath id="disc"><circle cx="150" cy="120" r="100"/></clipPath>
+    <path id="doc" d="M0 0H7L11 4V14H0Z"/>
+    <path id="fold" d="M7 0V4H11"/>
   </defs>
-  <rect width="960" height="220" rx="16" fill="url(#bg)"/>
-  <rect x="64" y="52" width="72" height="6" rx="3" fill="url(#accent)"/>
-  <text x="64" y="125" fill="#f0f6fc" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="64" font-weight="700" letter-spacing="-1">skillsonar</text>
-  <text x="64" y="168" fill="#9fb3c8" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="24">Skill search for coding agents</text>
+
+  <rect width="960" height="240" rx="16" fill="#071a12"/>
+
+  <!-- scope -->
+  <circle cx="150" cy="120" r="100" fill="url(#scope)"/>
+  <g fill="none" stroke="#2b7a50" stroke-width="1">
+    <circle cx="150" cy="120" r="100" stroke-opacity="0.9"/>
+    <circle cx="150" cy="120" r="75" stroke-opacity="0.45"/>
+    <circle cx="150" cy="120" r="50" stroke-opacity="0.45"/>
+    <circle cx="150" cy="120" r="25" stroke-opacity="0.45"/>
+    <path d="M50 120H250M150 20V220" stroke-opacity="0.35"/>
+  </g>
+
+  <!-- sweep trail: leading edge at 22 degrees above the horizon, fading counter-clockwise -->
+  <g clip-path="url(#disc)" fill="#3ddc84">
+    <path d="M150 120L242.45 81.89A100 100 0 0 0 238.78 73.98Z" fill-opacity="0.34"/>
+    <path d="M150 120L238.78 73.98A100 100 0 0 0 234.43 66.42Z" fill-opacity="0.28"/>
+    <path d="M150 120L234.43 66.42A100 100 0 0 0 229.44 59.26Z" fill-opacity="0.23"/>
+    <path d="M150 120L229.44 59.26A100 100 0 0 0 223.85 52.57Z" fill-opacity="0.19"/>
+    <path d="M150 120L223.85 52.57A100 100 0 0 0 217.69 46.39Z" fill-opacity="0.15"/>
+    <path d="M150 120L217.69 46.39A100 100 0 0 0 211.01 40.77Z" fill-opacity="0.12"/>
+    <path d="M150 120L211.01 40.77A100 100 0 0 0 203.88 35.75Z" fill-opacity="0.09"/>
+    <path d="M150 120L203.88 35.75A100 100 0 0 0 196.33 31.38Z" fill-opacity="0.06"/>
+    <path d="M150 120L196.33 31.38A100 100 0 0 0 188.43 27.68Z" fill-opacity="0.035"/>
+  </g>
+  <path d="M150 120L242.45 81.89" stroke="#7dffb0" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- SKILL.md nodes: unvisited, dim -->
+  <g fill="#0b2a1c" stroke="#3a8f63" stroke-width="1.2" stroke-linejoin="round" stroke-opacity="0.75">
+    <use href="#doc" x="82" y="64"/>
+    <use href="#doc" x="123" y="38"/>
+    <use href="#doc" x="55" y="118"/>
+    <use href="#doc" x="91" y="144"/>
+    <use href="#doc" x="143" y="184"/>
+    <use href="#doc" x="196" y="164"/>
+    <use href="#doc" x="226" y="143"/>
+    <use href="#doc" x="104" y="96"/>
+  </g>
+  <!-- node inside the trail: seen by the sweep, not a match -->
+  <g fill="#0f3d28" stroke="#5fd994" stroke-width="1.2" stroke-linejoin="round">
+    <use href="#doc" x="175" y="56"/>
+    <use href="#doc" x="196" y="98"/>
+  </g>
+
+  <!-- the match -->
+  <g>
+    <circle cx="218" cy="92" r="26" fill="none" stroke="#ffb62e" stroke-width="1" stroke-opacity="0.25"/>
+    <circle cx="218" cy="92" r="17" fill="none" stroke="#ffb62e" stroke-width="1.2" stroke-opacity="0.5"/>
+    <circle cx="218" cy="92" r="21" fill="#ffb62e" fill-opacity="0.12"/>
+    <g transform="translate(218 92) scale(1.7) translate(-5.5 -7)" fill="#ffb62e" stroke="#ffe3a3" stroke-width="0.9" stroke-linejoin="round">
+      <use href="#doc"/>
+    </g>
+  </g>
+
+  <!-- query origin -->
+  <circle cx="150" cy="120" r="5" fill="#e6f7ec"/>
+  <circle cx="150" cy="120" r="9" fill="none" stroke="#e6f7ec" stroke-opacity="0.5" stroke-width="1.2"/>
+
+  <!-- wordmark -->
+  <text x="304" y="98" fill="#e6f7ec" font-family="'Cascadia Mono', Consolas, 'SF Mono', Menlo, 'DejaVu Sans Mono', monospace" font-size="70" font-weight="700" letter-spacing="-2">skillsonar</text>
+  <text x="308" y="134" fill="#8fc4a8" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="23">Skill search for coding agents</text>
+
+  <!-- the command and its first hit -->
+  <g font-family="'Cascadia Mono', Consolas, 'SF Mono', Menlo, 'DejaVu Sans Mono', monospace" font-size="17">
+    <text x="308" y="182" fill="#8fc4a8"><tspan fill="#3ddc84">$</tspan> skillsonar search "my pod keeps restarting"</text>
+    <text x="308" y="208" fill="#ffb62e">1. kubernetes-pod-debugging  <tspan fill="#a8895a">(score 7.73)</tspan></text>
+  </g>
 </svg>
