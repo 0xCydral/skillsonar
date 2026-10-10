@@ -42,14 +42,7 @@ Tested on Linux and Windows (Python 3.10 and 3.13) by the [test workflow](.githu
 
 ## How it works
 
-```mermaid
-flowchart LR
-    A["SKILL.md folders"] --> B["build"]
-    B --> C["Index<br/>+ optional embeddings"]
-    Q["Your task"] --> S["search"]
-    C --> S
-    S --> R["Shortlist<br/>optional rerank"]
-```
+<p align="center"><img src="docs/how-it-works.svg" alt="How skillsonar works: build turns SKILL.md folders into a word index and optional embeddings; search ranks your task against them by keyword, semantic or hybrid into a ranked shortlist that an optional rerank can reorder." width="840"></p>
 
 1. **Build.** `skillsonar build` scans your skill folders and stores each skill as a set of stemmed words from its name, description and `when_to_use` text. Without a `when_to_use`, it uses the first lines of the body.
 2. **Score.** A query scores every word it shares with a skill. A word counts for more the fewer skills contain it: "test" appears everywhere and adds little, "playwright" appears in a few and adds a lot. A word that is also in the skill's name counts one and a half times.

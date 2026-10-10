@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="328" viewBox="0 0 840 328" role="img" aria-labelledby="hiw-title hiw-desc">
+  <title id="hiw-title">How skillsonar works</title>
+  <desc id="hiw-desc">Process diagram: build turns SKILL.md folders into a word index and optional embeddings; search ranks your task against them by keyword, semantic or hybrid, producing a ranked shortlist that an optional rerank can reorder.</desc>
+  <defs>
+    <marker id="hiw-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#8fc4a8"/></marker>
+    <marker id="hiw-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ffb62e"/></marker>
+  </defs>
+
+  <!-- background panel -->
+  <rect x="0.5" y="0.5" width="839" height="327" rx="15.5" fill="#071a12" stroke="#2b7a50" stroke-opacity="0.7" stroke-width="1"/>
+
+  <!-- lanes -->
+  <rect x="16" y="16" width="808" height="120" rx="10" fill="#0d3a26" fill-opacity="0.45" stroke="#2b7a50" stroke-opacity="0.6" stroke-width="1"/>
+  <rect x="16" y="192" width="808" height="120" rx="10" fill="#0d3a26" fill-opacity="0.45" stroke="#2b7a50" stroke-opacity="0.6" stroke-width="1"/>
+  <g font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace" font-size="9" letter-spacing="0.14em">
+    <text x="40" y="38" fill="#8fc4a8" font-weight="700">BUILD<tspan letter-spacing="0" font-weight="400" fill-opacity="0.75">   $ skillsonar build</tspan></text>
+    <text x="40" y="214" fill="#8fc4a8" font-weight="700">SEARCH<tspan letter-spacing="0" font-weight="400" fill-opacity="0.75">   $ skillsonar search "..."</tspan></text>
+  </g>
+
+  <!-- connectors (drawn before nodes) -->
+  <g fill="none" stroke="#8fc4a8" stroke-width="1.2">
+    <line x1="168" y1="80" x2="200" y2="80" marker-end="url(#hiw-arrow)"/>
+    <line x1="328" y1="80" x2="360" y2="80" stroke-dasharray="4,3" marker-end="url(#hiw-arrow)"/>
+    <line x1="264" y1="112" x2="264" y2="224" marker-end="url(#hiw-arrow)"/>
+    <line x1="424" y1="112" x2="424" y2="224" stroke-dasharray="4,3" marker-end="url(#hiw-arrow)"/>
+    <line x1="168" y1="256" x2="200" y2="256" marker-end="url(#hiw-arrow)"/>
+    <line x1="648" y1="256" x2="680" y2="256" stroke-dasharray="4,3" marker-end="url(#hiw-arrow)"/>
+    <line x1="488" y1="256" x2="520" y2="256" stroke="#ffb62e" stroke-width="1.5" marker-end="url(#hiw-arrow-accent)"/>
+  </g>
+
+  <!-- connector labels -->
+  <g font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace" font-size="8" letter-spacing="0.08em" fill="#8fc4a8" text-anchor="middle">
+    <rect x="272" y="157" width="44" height="14" rx="2" fill="#071a12"/>
+    <text x="294" y="167">WORDS</text>
+    <rect x="432" y="157" width="52" height="14" rx="2" fill="#071a12"/>
+    <text x="458" y="167">VECTORS</text>
+  </g>
+
+  <!-- nodes -->
+  <g font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#e6f7ec" text-anchor="middle">
+    <!-- inputs -->
+    <rect x="40" y="48" width="128" height="64" rx="6" fill="#8fc4a8" fill-opacity="0.1" stroke="#8fc4a8" stroke-opacity="0.5" stroke-width="1"/>
+    <text x="104" y="76">SKILL.md folders</text>
+    <rect x="40" y="224" width="128" height="64" rx="6" fill="#8fc4a8" fill-opacity="0.1" stroke="#8fc4a8" stroke-opacity="0.5" stroke-width="1"/>
+    <text x="104" y="252">Your task</text>
+    <!-- steps -->
+    <rect x="200" y="48" width="128" height="64" rx="6" fill="#0f3d28" stroke="#3a8f63" stroke-width="1.2"/>
+    <text x="264" y="76">Index</text>
+    <rect x="200" y="224" width="288" height="64" rx="6" fill="#0f3d28" stroke="#3a8f63" stroke-width="1.2"/>
+    <text x="344" y="252">Search</text>
+    <!-- optional -->
+    <rect x="360" y="48" width="128" height="64" rx="6" fill="#e6f7ec" fill-opacity="0.03" stroke="#8fc4a8" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="424" y="76">Embeddings</text>
+    <rect x="680" y="224" width="128" height="64" rx="6" fill="#e6f7ec" fill-opacity="0.03" stroke="#8fc4a8" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="744" y="252">Rerank</text>
+    <!-- focal -->
+    <rect x="520" y="224" width="128" height="64" rx="6" fill="#ffb62e" fill-opacity="0.12" stroke="#ffb62e" stroke-width="1.4"/>
+    <text x="584" y="252">Ranked shortlist</text>
+  </g>
+
+  <!-- sublabels -->
+  <g font-family="ui-monospace, 'SFMono-Regular', Consolas, monospace" font-size="9" fill="#8fc4a8" text-anchor="middle">
+    <text x="104" y="94">name · description</text>
+    <text x="264" y="94">stemmed words</text>
+    <text x="424" y="94">optional · --embed</text>
+    <text x="104" y="270">a plain sentence</text>
+    <text x="344" y="270">keyword · semantic · hybrid</text>
+    <text x="584" y="270">description · path</text>
+    <text x="744" y="270">optional · --rerank</text>
+  </g>
+
+  <!-- build lane note -->
+  <g font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-style="italic" fill="#8fc4a8">
+    <text x="520" y="76">Built once, saved as index.json and</text>
+    <text x="520" y="92">embeddings.json in your user cache.</text>
+  </g>
+</svg>
