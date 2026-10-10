@@ -89,5 +89,5 @@ Initial release.
 - Idempotent `install.sh`.
 - Unit test suite for agent parsing, rules engine, profile management, cosine similarity.
 
-[Unreleased]: https://github.com/AdrianCsT/opencode-router/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/AdrianCsT/opencode-router/releases/tag/v0.1.0
+[Unreleased]: https://github.com/0xCydral/opencode-router/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/0xCydral/opencode-router/releases/tag/v0.1.0

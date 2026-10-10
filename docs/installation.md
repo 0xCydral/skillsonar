@@ -36,7 +36,7 @@ export OPENCODE_ROUTER_RERANK_MODEL=qwen3.5:9b        # stronger
 ## Install from source
 
 ```bash
-git clone https://github.com/AdrianCsT/opencode-router.git
+git clone https://github.com/0xCydral/opencode-router.git
 cd opencode-router
 ./install.sh
 ```

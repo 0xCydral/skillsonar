@@ -25,9 +25,9 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/AdrianCsT/opencode-router"
-Repository = "https://github.com/AdrianCsT/opencode-router"
-Issues = "https://github.com/AdrianCsT/opencode-router/issues"
+Homepage = "https://github.com/0xCydral/opencode-router"
+Repository = "https://github.com/0xCydral/opencode-router"
+Issues = "https://github.com/0xCydral/opencode-router/issues"
 
 [project.scripts]
 opencode-router = "opencode_router.cli:main"

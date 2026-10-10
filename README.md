@@ -1,9 +1,9 @@
 # opencode-router
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://github.com/AdrianCsT/opencode-router/actions/workflows/test.yml/badge.svg)](https://github.com/AdrianCsT/opencode-router/actions/workflows/test.yml)
+[![Tests](https://github.com/0xCydral/opencode-router/actions/workflows/test.yml/badge.svg)](https://github.com/0xCydral/opencode-router/actions/workflows/test.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
-[![Version](https://img.shields.io/badge/version-0.3.3-blue)](https://github.com/AdrianCsT/opencode-router/releases)
+[![Version](https://img.shields.io/badge/version-0.3.3-blue)](https://github.com/0xCydral/opencode-router/releases)
 
 > Open `opencode`, type a task, and the router dispatches it to the right
 > specialist from a catalog of 233 agents. Two-stage semantic routing
@@ -19,7 +19,7 @@ agent do it — humans fat-finger configs.
 
 ```
 Install and configure opencode-router by reading the setup guide at
-https://raw.githubusercontent.com/AdrianCsT/opencode-router/main/AGENTS.md
+https://raw.githubusercontent.com/0xCydral/opencode-router/main/AGENTS.md
 
 Then verify with:
   opencode-router doctor
@@ -29,7 +29,7 @@ Then verify with:
 **Agents reading this directly:** fetch the full setup guide.
 
 ```bash
-curl -s https://raw.githubusercontent.com/AdrianCsT/opencode-router/main/AGENTS.md
+curl -s https://raw.githubusercontent.com/0xCydral/opencode-router/main/AGENTS.md
 ```
 
 [AGENTS.md](AGENTS.md) covers the full dev environment: Python, Ollama,
@@ -69,7 +69,7 @@ ollama serve &>/dev/null &
 ollama pull mxbai-embed-large qwen3.5:4b
 
 # Install opencode-router
-git clone https://github.com/AdrianCsT/opencode-router.git ~/opencode-router
+git clone https://github.com/0xCydral/opencode-router.git ~/opencode-router
 cd ~/opencode-router && python3 -m pip install -e ".[dev]"
 bash scripts/import-agents.sh
 cp examples/router-prompts/default.md ~/.config/opencode/agents/router.md

@@ -6,7 +6,7 @@ all welcome.
 ## Quick start
 
 ```bash
-git clone https://github.com/AdrianCsT/opencode-router.git
+git clone https://github.com/0xCydral/opencode-router.git
 cd opencode-router
 python3 -m pip install --user -e ".[dev]"
 python3 -m unittest discover -s tests
