@@ -1,0 +1,62 @@
+name: Wrong result
+description: A search returned the wrong skill, or missed the right one
+labels: [wrong-result, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ranking reports are the most useful way to improve skillsonar. Please include the exact query.
+  - type: input
+    id: query
+    attributes:
+      label: Query
+      description: The exact text you passed to `skillsonar search`.
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: Skill you expected
+      description: The name of the skill that should have been in the results.
+    validations:
+      required: true
+  - type: textarea
+    id: got
+    attributes:
+      label: What you got
+      description: Paste the output of the command, or the names of the results and their order.
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Search mode
+      options:
+        - keyword (default)
+        - --semantic
+        - --hybrid
+        - --hybrid --rerank
+        - --semantic --rerank
+        - keyword --rerank
+    validations:
+      required: true
+  - type: textarea
+    id: stats
+    attributes:
+      label: Output of `skillsonar stats`
+      description: Shows the catalog size and whether embeddings are built.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of the expected skill
+      description: Optional. Paste the `description` (and `when_to_use`, if any) from its SKILL.md. Leave out anything private.
+  - type: input
+    id: version
+    attributes:
+      label: skillsonar version and operating system
+      description: Output of `skillsonar --version`, plus your OS.
+    validations:
+      required: true

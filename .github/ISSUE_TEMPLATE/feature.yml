@@ -2,13 +2,28 @@ name: Feature request
 description: Propose something new
 labels: [enhancement]
 body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part is it about?
+      options:
+        - build and the index
+        - search and ranking
+        - embeddings
+        - rerank
+        - eval
+        - other
+    validations:
+      required: true
   - type: textarea
+    id: want
     attributes:
       label: What would you like?
       description: Describe the feature and the problem it solves.
     validations:
       required: true
   - type: textarea
+    id: alternatives
     attributes:
       label: Alternatives considered
-      description: Any workarounds or alternative approaches you've tried.
+      description: Any workaround you use today, or other approaches you looked at.

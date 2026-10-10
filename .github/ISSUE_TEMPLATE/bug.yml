@@ -1,25 +1,40 @@
 name: Bug report
-description: Something is not working
+description: A crash, an error message or something that does not run
 labels: [bug, triage]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        If the tool ran but returned the wrong skill, use the "Wrong result" form instead.
   - type: textarea
+    id: what
     attributes:
       label: What happened?
-      description: The command you ran, what you expected and what you got.
+      description: The exact command you ran, what you expected and what you got. Paste the full error.
     validations:
       required: true
   - type: input
+    id: version
     attributes:
       label: skillsonar version
       description: Output of `skillsonar --version`
     validations:
       required: true
   - type: input
+    id: platform
     attributes:
       label: Python version and operating system
     validations:
       required: true
   - type: textarea
+    id: stats
     attributes:
       label: Output of `skillsonar stats`
-      description: Optional. Helps when results look wrong.
+      description: Optional. Helps when the index looks wrong.
+      render: text
+  - type: textarea
+    id: ollama
+    attributes:
+      label: Output of `ollama list`
+      description: Optional. Only for problems with embeddings.
+      render: text

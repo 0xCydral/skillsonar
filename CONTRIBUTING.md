@@ -30,8 +30,11 @@ python -m ruff check .
 
 ## Reporting issues
 
-Include the output of `skillsonar --version`, your Python version and operating system, the exact
-command, and the full error. For embeddings problems, add the output of `ollama list`.
+Use the [issue forms](https://github.com/0xCydral/skillsonar/issues/new/choose). Pick "Wrong result"
+when a search returned the wrong skill: it asks for the query, the skill you expected, the mode and
+the output of `skillsonar stats`. Pick "Bug report" for errors and crashes, and include the output of
+`skillsonar --version`, your Python version and operating system, the exact command, and the full
+error. For embeddings problems, add the output of `ollama list`.
 
 ## Code layout
 
