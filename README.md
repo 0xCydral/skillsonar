@@ -168,15 +168,14 @@ skillsonar eval evals/queries.jsonl --index .demo --mode hybrid
 The catalog is 21 skills, the author wrote both the queries and the skills, and each query has one
 expected skill. The table compares the three modes on the same data. It does not predict recall on
 a catalog of hundreds of real skills with overlapping descriptions. The semantic and hybrid rows
-used bge-m3 through the default `OLLAMA_HOST`. The embedding rows used bge-m3 served through the
-default `OLLAMA_HOST`. Point `eval` at your own index and your own queries for a number that
-applies to you.
+used bge-m3 through the default `OLLAMA_HOST`. Point `eval` at your own index and your own queries
+for a number that applies to you.
 
 ## Formerly opencode-router
 
 skillsonar was `opencode-router` up to version 0.3.3. Version 0.4.0 removes the agent routing, task
-orchestration and project memory, because the routing step did not pick the right agent often enough
-to justify itself (first choice correct on 19 of 30 test queries), and keeps the skill search.
+orchestration and project memory, because in daily use the routing step did not earn its
+complexity. The skill search was the part worth keeping.
 
 ## Development
 

@@ -26,8 +26,8 @@ Renamed from `opencode-router` to `skillsonar`. The project is now a skill searc
 
 ### Removed
 - Agent routing, rules, provider profiles, the `opencode.json` patcher, DAG orchestration,
-  project memory, `install.sh`, example agents and the related docs. Routing was dropped because the
-  first choice was correct on only 19 of 30 test queries.
+  project memory, `install.sh`, example agents and the related docs. Routing was dropped because it
+  did not earn its complexity in daily use.
 - The `opencode-router` console script. Use `skillsonar`.
 
 ## [0.3.3] — 2026-05-11
