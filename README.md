@@ -34,8 +34,8 @@ The examples below run against the 21 small skills in `tests/fixtures/skills`.
 
 ```console
 $ skillsonar build --path tests/fixtures/skills --embed
-indexed 21 skills from 1 folder(s) -> .demo/index.json
-embedded 21 skills with bge-m3 -> .demo/embeddings.json
+indexed 21 skills from 1 folder(s) -> ~/.cache/skillsonar/index.json
+embedded 21 skills with bge-m3 -> ~/.cache/skillsonar/embeddings.json
 
 $ skillsonar search "my pod keeps restarting"
 1. kubernetes-pod-debugging  (score 7.73)
@@ -87,7 +87,7 @@ $ skillsonar search "my pod keeps restarting" --json --top 1
 
 ```console
 $ skillsonar stats
-index: .demo/index.json
+index: ~/.cache/skillsonar/index.json
 built: 2026-10-10T14:17:46-0500
 skills: 21
 duplicates collapsed: 0
