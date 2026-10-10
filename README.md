@@ -38,7 +38,7 @@ indexed 21 skills from 1 folder(s) -> .demo/index.json
 embedded 21 skills with bge-m3 -> .demo/embeddings.json
 
 $ skillsonar search "my pod keeps restarting"
-1. kubernetes-pod-debugging  (score 12.36)
+1. kubernetes-pod-debugging  (score 7.73)
    Diagnose Kubernetes pods that crash, restart repeatedly or stay Pending. Covers kubectl describe, logs, events...
    tests/fixtures/skills/kubernetes-pod-debugging
 ```
@@ -50,7 +50,7 @@ search puts the Kubernetes skill second:
 
 ```console
 $ skillsonar search "container got killed for using too much memory" --top 3
-1. memory-leak-profiling  (score 9.27)
+1. memory-leak-profiling  (score 4.64)
    Find memory leaks in long-running Node.js and Python services. Take heap snapshots, compare them over time and...
    tests/fixtures/skills/memory-leak-profiling
 
@@ -77,7 +77,7 @@ $ skillsonar search "my pod keeps restarting" --json --top 1
 [
   {
     "name": "kubernetes-pod-debugging",
-    "score": 12.3642,
+    "score": 7.7276,
     "source": "tests/fixtures/skills",
     "path": "/home/you/skills/kubernetes-pod-debugging",
     "desc": "Diagnose Kubernetes pods that crash, restart repeatedly or stay Pending. Covers kubectl describe, logs, events, OOMKilled and CrashLoopBackOff."
@@ -88,7 +88,7 @@ $ skillsonar search "my pod keeps restarting" --json --top 1
 ```console
 $ skillsonar stats
 index: .demo/index.json
-built: 2026-10-10T13:55:12-0500
+built: 2026-10-10T14:17:46-0500
 skills: 21
 duplicates collapsed: 0
   tests/fixtures/skills: 21
@@ -119,8 +119,9 @@ query --> embedding similarity --+
   it shares with a skill, and a word counts for more the fewer skills contain it: "test" appears
   everywhere and adds little, "playwright" appears in a few and adds a lot (the weight is
   log(1 + N / df), N skills in the catalog, df of them holding the word). A word that is also in
-  the skill's name counts three times. Frontmatter block scalars (`description: |` and
-  `description: >`) are parsed.
+  the skill's name counts one and a half times, so a common word in a name cannot outrank a skill
+  that matches the rarer words. Contractions such as "doesn't" are ignored. Frontmatter block
+  scalars (`description: |` and `description: >`) are parsed.
 - **Duplicates.** The same skill is often copied into several folders (`~/.claude/skills`,
   `~/.agents/skills`, ...). Skills with the same name are collapsed to the first one found, in the
   order of the folders under Usage. Results show `also in: N other folder(s)` for it, `--json` lists
@@ -162,7 +163,7 @@ fixture skills in `tests/fixtures/skills`. Measured on 2026-10-10, k = 5:
 
 | Mode | recall@5 | top-1 correct |
 |---|---|---|
-| keyword | 0.857 | 19 of 28 |
+| keyword | 0.857 | 21 of 28 |
 | semantic (bge-m3) | 0.964 | 25 of 28 |
 | hybrid | 0.964 | 24 of 28 |
 

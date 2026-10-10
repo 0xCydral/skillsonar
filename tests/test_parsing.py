@@ -60,3 +60,9 @@ def test_tokenize_drops_stopwords_and_short_tokens():
 
 def test_tokenize_splits_camel_case():
     assert tokenize("CrashLoopBackOff") == {"crash", "loop", "back", "off"}
+
+
+def test_contractions_do_not_become_rare_tokens():
+    # "doesn't" used to split into "doesn", a rare token that matched any skill saying "doesn't".
+    assert tokenize("it doesn't work") == {"work"}
+    assert tokenize("it doesn\u2019t work") == {"work"}

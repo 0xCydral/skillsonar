@@ -30,7 +30,8 @@ INDEX_FILE = "index.json"
 STOPWORDS = frozenset(
     "the and for with that this from into what when how why not are was were can has have had "
     "its our out you your any all but use used using get got just does did too very more some "
-    "then than them they there their about after before over under again keeps keep".split()
+    "then than them they there their about after before over under again keeps keep "
+    "dont doesnt didnt isnt arent wasnt cant wont shouldnt couldnt wouldnt youre thats".split()
 )
 
 _TOKEN_RE = re.compile(r"[a-z0-9]{3,}")
@@ -53,7 +54,7 @@ def stem(word: str) -> str:
 
 
 def tokenize(text: str) -> set[str]:
-    text = _CAMEL_RE.sub(" ", text).lower()
+    text = _CAMEL_RE.sub(" ", text).lower().replace("'", "").replace("\u2019", "")
     return {stem(t) for t in _TOKEN_RE.findall(text) if t not in STOPWORDS}
 
 
@@ -187,7 +188,8 @@ def keyword_rank(entries: list[dict], query: str) -> list[tuple[dict, float]]:
 
     A shared token is worth idf = log(1 + N / df), where df counts the entries that hold it, so a
     word every skill uses adds little and a word few skills use adds a lot. A token that is also in
-    the skill's name counts three times (its idf plus a name bonus of 2 * idf).
+    the skill's name counts one and a half times (its idf plus a name bonus of idf / 2). A larger
+    bonus let one common word in a name, like "full" or "repo", outrank the skill the query meant.
     """
     terms = sorted(tokenize(query))
     token_sets = [set(entry["tokens"]) for entry in entries]
@@ -198,7 +200,7 @@ def keyword_rank(entries: list[dict], query: str) -> list[tuple[dict, float]]:
         shared = [t for t in terms if t in tokens]
         if shared:
             in_name = tokenize(entry["name"])
-            score = sum(idf[t] * (3 if t in in_name else 1) for t in shared)
+            score = sum(idf[t] * (1.5 if t in in_name else 1) for t in shared)
             scored.append((entry, score))
     scored.sort(key=lambda pair: -pair[1])
     return scored
