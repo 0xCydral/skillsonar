@@ -1,0 +1,28 @@
+{"query": "my pod keeps restarting and I do not know why", "expected": ["kubernetes-pod-debugging"]}
+{"query": "container got killed for using too much memory", "expected": ["kubernetes-pod-debugging"]}
+{"query": "I need to fill out a government form that came as a PDF", "expected": ["pdf-form-filling"]}
+{"query": "my branch has twenty tiny commits and the reviewer wants one clean history", "expected": ["git-rebase-cleanup"]}
+{"query": "how do I check a button click shows the right text in my component tests", "expected": ["react-testing"]}
+{"query": "the plan shows changes nobody made in the cloud console", "expected": ["terraform-modules"]}
+{"query": "this report query takes forty seconds and scans the whole table", "expected": ["sql-query-tuning"]}
+{"query": "our deploy image is 2 GB and every build downloads everything again", "expected": ["docker-image-slimming"]}
+{"query": "what should I write in the message for this change", "expected": ["commit-message-writing"]}
+{"query": "I want people to install my library with pip", "expected": ["python-packaging"]}
+{"query": "pull requests are not being checked automatically before merge", "expected": ["github-actions-ci"]}
+{"query": "users are hammering the endpoint and getting too many requests errors", "expected": ["api-rate-limiting"]}
+{"query": "the export from accounting has weird characters and duplicate rows", "expected": ["csv-data-cleaning"]}
+{"query": "visitors see a bad gateway page after I put a web server in front of the app", "expected": ["nginx-reverse-proxy"]}
+{"query": "someone using only a keyboard cannot reach the menu", "expected": ["accessibility-audit"]}
+{"query": "adding a column to a huge table without taking the site down", "expected": ["postgres-migrations"]}
+{"query": "pattern that matches email addresses but hangs on long input", "expected": ["regex-builder"]}
+{"query": "the service uses more RAM every day until it falls over", "expected": ["memory-leak-profiling"]}
+{"query": "let people sign in with their Google account", "expected": ["oauth-login-flow"]}
+{"query": "the site was down for two hours, write up what happened", "expected": ["incident-postmortem"]}
+{"query": "I cannot tell which service is slow when a request crosses five of them", "expected": ["observability-logging"]}
+{"query": "the build is green on my machine and red on the server about one run in ten", "expected": ["flaky-test-triage"]}
+{"query": "reduce the size of my Dockerfile output", "expected": ["docker-image-slimming"]}
+{"query": "rewrite the last few commits before I push", "expected": ["git-rebase-cleanup"]}
+{"query": "is the contrast on my landing page good enough for people with low vision", "expected": ["accessibility-audit"]}
+{"query": "tests fail when run together but pass alone", "expected": ["flaky-test-triage"]}
+{"query": "set up HTTPS for my site", "expected": ["nginx-reverse-proxy"]}
+{"query": "split my infrastructure code into reusable pieces", "expected": ["terraform-modules"]}
