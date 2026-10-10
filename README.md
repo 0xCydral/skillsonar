@@ -44,14 +44,11 @@ Tested on Linux and Windows (Python 3.10 and 3.13) by the [test workflow](.githu
 
 ```mermaid
 flowchart LR
-    A["SKILL.md folders"] --> B["skillsonar build"]
-    B --> C["index.json<br/>stemmed words"]
-    B -->|"--embed"| D["embeddings.json<br/>one vector per skill"]
-    Q["Your sentence"] --> S["skillsonar search"]
+    A["SKILL.md folders"] --> B["build"]
+    B --> C["Index<br/>+ optional embeddings"]
+    Q["Your task"] --> S["search"]
     C --> S
-    D -.->|"--semantic or --hybrid"| S
-    S --> R["Ranked shortlist"]
-    R -.->|"--rerank"| M["Chat model reorders it"]
+    S --> R["Shortlist<br/>optional rerank"]
 ```
 
 1. **Build.** `skillsonar build` scans your skill folders and stores each skill as a set of stemmed words from its name, description and `when_to_use` text. Without a `when_to_use`, it uses the first lines of the body.

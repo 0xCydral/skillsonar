@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="220" viewBox="0 0 960 220" role="img" aria-labelledby="title desc">
   <title id="title">skillsonar</title>
-  <desc id="desc">skillsonar: find the right agent skill by describing the task.</desc>
+  <desc id="desc">skillsonar: skill search for coding agents.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#0d1117"/>
@@ -14,5 +14,5 @@
   <rect width="960" height="220" rx="16" fill="url(#bg)"/>
   <rect x="64" y="52" width="72" height="6" rx="3" fill="url(#accent)"/>
   <text x="64" y="125" fill="#f0f6fc" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="64" font-weight="700" letter-spacing="-1">skillsonar</text>
-  <text x="64" y="168" fill="#9fb3c8" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="24">Find the right agent skill by describing the task.</text>
+  <text x="64" y="168" fill="#9fb3c8" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="24">Skill search for coding agents</text>
 </svg>
