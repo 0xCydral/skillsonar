@@ -46,8 +46,8 @@ class Searcher:
 
     def _semantic(self, query: str) -> list[tuple[dict, float]]:
         if self._vectors is None:
-            self._vectors = load_embeddings(self.directory, self.all_entries)
-        query_vector = self.ollama.embed([query])[0]
+            self._vectors = load_embeddings(self.directory, self.all_entries, self.ollama.model)
+        query_vector = self.ollama.embed_query(query)
         return semantic_rank(self.entries, self._vectors, query_vector)
 
     def search(self, query: str, mode: str, top: int, reranker=None, pool: int = POOL):

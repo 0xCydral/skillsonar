@@ -119,14 +119,14 @@ def test_unreachable_ollama_is_a_clean_error(index_dir, skills_dir, monkeypatch,
     from skillsonar.errors import OllamaError
 
     class Down:
-        model = "bge-m3"
+        model = "embeddinggemma-2"
 
-        def embed(self, texts):
-            raise OllamaError("embeddings failed at http://127.0.0.1:1 (refused); is Ollama running?")
+        def embed_documents(self, texts):
+            raise OllamaError("embeddings failed at http://127.0.0.1:1 (refused); is the embeddings server running?")
 
     monkeypatch.setattr("skillsonar.cli.OllamaClient", type("C", (), {"from_env": staticmethod(Down)}))
     assert main(["build", "--path", str(skills_dir), "--index", str(index_dir), "--embed"]) == 1
-    assert "is Ollama running" in capsys.readouterr().err
+    assert "is the embeddings server running" in capsys.readouterr().err
 
 
 def test_rerank_flag_uses_the_client(index_dir, monkeypatch, capsys):

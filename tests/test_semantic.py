@@ -144,24 +144,54 @@ def test_ollama_client_maps_failures_to_one_error(monkeypatch):
         raise HttpFailure("connection refused")
 
     monkeypatch.setattr("skillsonar.ollama.post_json", refuse)
-    with pytest.raises(OllamaError, match="is Ollama running"):
-        OllamaClient().embed(["x"])
+    with pytest.raises(OllamaError, match="is the embeddings server running"):
+        OllamaClient().embed_documents(["x"])
 
 
-def test_ollama_client_hints_at_pull_on_404(monkeypatch):
+def test_ollama_client_names_the_missing_model_on_404(monkeypatch):
     from skillsonar._http import HttpFailure
 
     def missing(*args, **kwargs):
         raise HttpFailure("HTTP 404", 404)
 
     monkeypatch.setattr("skillsonar.ollama.post_json", missing)
-    with pytest.raises(OllamaError, match="ollama pull bge-m3"):
-        OllamaClient().embed(["x"])
+    with pytest.raises(OllamaError, match="does not know model embeddinggemma-2"):
+        OllamaClient().embed_query("x")
 
 
 def test_ollama_host_without_scheme_is_accepted(monkeypatch):
+    monkeypatch.setenv("SKILLSONAR_EMBED_HOST", "10.0.0.5:11436")
+    assert OllamaClient.from_env().host == "http://10.0.0.5:11436"
+    monkeypatch.delenv("SKILLSONAR_EMBED_HOST")
     monkeypatch.setenv("OLLAMA_HOST", "10.0.0.5:11434")
-    assert OllamaClient.from_env().host == "http://10.0.0.5:11434"
+    assert OllamaClient.from_env().host == "http://127.0.0.1:11436"
+
+
+def test_ollama_client_sends_prefixed_openai_requests(monkeypatch):
+    sent = []
+
+    def reply(url, payload, **kwargs):
+        sent.append((url, payload))
+        rows = [{"index": i, "embedding": [float(i)]} for i in range(len(payload["input"]))]
+        return {"data": rows[::-1]}
+
+    monkeypatch.setattr("skillsonar.ollama.post_json", reply)
+    client = OllamaClient("http://h:1")
+    assert client.embed_documents(["a", "b"]) == [[0.0], [1.0]]
+    assert client.embed_query("q") == [0.0]
+    assert [u for u, _ in sent] == ["http://h:1/v1/embeddings"] * 2
+    assert sent[0][1] == {
+        "model": "embeddinggemma-2",
+        "input": ["title: none | text: a", "title: none | text: b"],
+    }
+    assert sent[1][1]["input"] == ["task: search result | query: q"]
+
+
+def test_embeddings_built_with_another_model_are_refused(tmp_path):
+    save_embeddings(tmp_path, {"model": "bge-m3", "count": 1, "paths": ["/p"], "vectors": [[1.0]]})
+    with pytest.raises(SkillIndexError, match="built with bge-m3, not embeddinggemma-2"):
+        load_embeddings(tmp_path, [{"path": "/p"}], "embeddinggemma-2")
+    assert load_embeddings(tmp_path, [{"path": "/p"}], "bge-m3") == {"/p": [1.0]}
 
 
 def test_rerank_client_requires_configuration(monkeypatch):

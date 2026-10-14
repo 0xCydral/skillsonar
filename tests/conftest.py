@@ -18,7 +18,10 @@ class FakeOllama:
     def __init__(self):
         self.calls = 0
 
-    def embed(self, texts):
+    def embed_query(self, text):
+        return self.embed_documents([text])[0]
+
+    def embed_documents(self, texts):
         self.calls += 1
         vectors = []
         for text in texts:

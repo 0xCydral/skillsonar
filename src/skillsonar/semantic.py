@@ -35,11 +35,11 @@ def unit(vector: list[float]) -> list[float]:
 
 
 def build_embeddings(entries: list[dict], client, progress=None) -> dict:
-    """Embed every entry in batches. `client` is an OllamaClient or anything with embed()."""
+    """Embed every entry in batches. `client` is an OllamaClient or anything with embed_documents()."""
     vectors: list[list[float]] = []
     for start in range(0, len(entries), BATCH):
         batch = entries[start : start + BATCH]
-        vectors.extend(unit(v) for v in client.embed([document_for(e) for e in batch]))
+        vectors.extend(unit(v) for v in client.embed_documents([document_for(e) for e in batch]))
         if progress:
             progress(len(vectors), len(entries))
     return {
@@ -56,8 +56,8 @@ def save_embeddings(directory: Path, payload: dict) -> Path:
     return target
 
 
-def load_embeddings(directory: Path, entries: list[dict]) -> dict[str, list[float]]:
-    """Path to vector. Fails when the embeddings were built for a different set of skills."""
+def load_embeddings(directory: Path, entries: list[dict], model: str | None = None) -> dict[str, list[float]]:
+    """Path to vector. Fails when the embeddings were built for a different set of skills or another model."""
     target = directory / EMBEDDINGS_FILE
     if not target.is_file():
         raise SkillIndexError(f"no embeddings at {target}. Build them: skillsonar build --embed")
@@ -66,6 +66,10 @@ def load_embeddings(directory: Path, entries: list[dict]) -> dict[str, list[floa
         vectors = dict(zip(payload["paths"], payload["vectors"], strict=True))
     except (OSError, ValueError, KeyError) as exc:
         raise SkillIndexError(f"cannot read {target} ({exc}); rebuild: skillsonar build --embed") from exc
+    if model is not None and payload.get("model") != model:
+        raise SkillIndexError(
+            f"embeddings were built with {payload.get('model')}, not {model}; run: skillsonar build --embed"
+        )
     if any(e["path"] not in vectors for e in entries):
         raise SkillIndexError("embeddings are out of date for this index; run: skillsonar build --embed")
     return vectors
