@@ -33,7 +33,7 @@ Version 0.4.0. It is a command-line tool with no interface of its own.
 | Part | State | Notes |
 |---|---|---|
 | Keyword search | Works | Measured: recall@5 0.857 on the fixture set |
-| Semantic search | Works | Needs Ollama with `bge-m3`. Measured: recall@5 0.964 |
+| Semantic search | Works | Needs an embeddings server with EmbeddingGemma 2. Measured: recall@5 1.000 |
 | Hybrid search | Works | Keyword and semantic fused. Measured: recall@5 0.964 |
 | Rerank | **Not measured** | Covered by unit tests with a stub. Never run against a real model |
 | `eval` command | Works | recall@k over your own JSONL queries |
@@ -46,7 +46,7 @@ Tested on Linux and Windows (Python 3.10 and 3.13) by the [test workflow](.githu
 
 1. **Build.** `skillsonar build` scans your skill folders and stores each skill as a set of stemmed words from its name, description and `when_to_use` text. Without a `when_to_use`, it uses the first lines of the body.
 2. **Score.** A query scores every word it shares with a skill. A word counts for more the fewer skills contain it: "test" appears everywhere and adds little, "playwright" appears in a few and adds a lot. A word that is also in the skill's name counts one and a half times.
-3. **Add meaning (optional).** `build --embed` sends each skill's name, description, headings and opening prose to an Ollama embeddings model. `--semantic` ranks by similarity of meaning. `--hybrid` fuses the keyword and embedding rankings.
+3. **Add meaning (optional).** `build --embed` sends each skill's name, description, headings and opening prose to an embeddings server (EmbeddingGemma 2 by default). `--semantic` ranks by similarity of meaning. `--hybrid` fuses the keyword and embedding rankings.
 4. **Rerank (optional).** `--rerank` sends the shortlist to a chat model in one call and keeps the order it returns. It only reorders what the first stage found.
 
 The same skill is often copied into several folders (`~/.claude/skills`, `~/.agents/skills`, and so on). Skills with the same name are collapsed to the first one found, in the order of the folders listed under [Usage](#usage). Results show `also in: N other folder(s)` for it.
@@ -57,7 +57,7 @@ The same skill is often copied into several folders (`~/.claude/skills`, `~/.age
 |---|---|
 | **Python** | 3.10 or newer. The core has no dependencies. |
 | **Your skills** | Folders containing `SKILL.md` files. The defaults are listed under [Usage](#usage). |
-| **Ollama with `bge-m3`** | Optional. Needed for `--embed`, `--semantic` and `--hybrid`. Run `ollama pull bge-m3`. |
+| **An embeddings server** | Optional. Needed for `--embed`, `--semantic` and `--hybrid`. Any OpenAI-style `/v1/embeddings` endpoint serving EmbeddingGemma 2 as `embeddinggemma-2`, by default at `http://127.0.0.1:11436`. |
 | **A chat endpoint** | Optional. Any OpenAI-compatible server, for `--rerank` only. |
 | **Disk** | The index is two JSON files in your user cache. |
 
@@ -82,7 +82,7 @@ The examples below run against the 21 small skills in `tests/fixtures/skills`. C
 ```console
 $ skillsonar build --path tests/fixtures/skills --embed
 indexed 21 skills from 1 folder(s) -> ~/.cache/skillsonar/index.json
-embedded 21 skills with bge-m3 -> ~/.cache/skillsonar/embeddings.json
+embedded 21 skills with embeddinggemma-2 -> ~/.cache/skillsonar/embeddings.json
 ```
 
 Leave out `--embed` if you only want keyword search.
@@ -156,7 +156,7 @@ built: 2026-10-10T15:54:59-0500
 skills: 21
 duplicates collapsed: 0
   tests/fixtures/skills: 21
-embeddings: bge-m3, 21 vectors
+embeddings: embeddinggemma-2, 21 vectors
 ```
 
 Without an index, commands stop with a message that names the fix:
@@ -186,7 +186,7 @@ It sends the first-stage shortlist (150 skills by default, set with `--pool N`),
 | `--path DIR` | `build`: the folders to index. Other commands: only return skills under `DIR`. |
 | `SKILLSONAR_PATHS` | `build`: folders to index, separated by `:` (`;` on Windows). Replaces the defaults, like `--path`. |
 | `--index DIR` | Where `index.json` and `embeddings.json` live. Default: `~/.cache/skillsonar` (`$XDG_CACHE_HOME/skillsonar` when set), or `%LOCALAPPDATA%\skillsonar` on Windows. |
-| `OLLAMA_HOST` | Address of the embeddings server. Default `http://127.0.0.1:11434`. |
+| `SKILLSONAR_EMBED_HOST` | Address of the embeddings server. Default `http://127.0.0.1:11436`. |
 
 The full list is under [For developers](#for-developers).
 
@@ -194,13 +194,13 @@ The full list is under [For developers](#for-developers).
 
 `skillsonar eval` reads a JSONL file with one `{"query": "...", "expected": ["skill-name"]}` object per line and prints recall@k: for each query, the share of its expected skills found in the top k, averaged over queries. It exits with an error if an expected name is not in the index.
 
-`evals/queries.jsonl` holds 28 queries written as symptoms ("my pod keeps restarting") against the 21 fixture skills in `tests/fixtures/skills`. Measured on 2026-10-10, k = 5:
+`evals/queries.jsonl` holds 28 queries written as symptoms ("my pod keeps restarting") against the 21 fixture skills in `tests/fixtures/skills`. Measured on 2026-10-14, k = 5:
 
 | Mode | recall@5 | Expected skill in top 5 | top-1 correct |
 |---|---|---|---|
 | keyword | 0.857 | 24 of 28 | 21 of 28 |
-| semantic (bge-m3) | 0.964 | 27 of 28 | 25 of 28 |
-| hybrid | 0.964 | 27 of 28 | 24 of 28 |
+| semantic (EmbeddingGemma 2) | 1.000 | 28 of 28 | 26 of 28 |
+| hybrid | 0.964 | 27 of 28 | 23 of 28 |
 
 Reproduce it:
 
@@ -226,7 +226,7 @@ recall@5: 0.857   (every expected skill in top 5: 24/28; top-1 correct: 21/28)
 ```
 
 > [!IMPORTANT]
-> Read these numbers with their limits. The catalog is 21 skills, the author wrote both the queries and the skills, and each query has one expected skill. The table compares the three modes on the same data. It does not predict recall on a catalog of hundreds of real skills with overlapping descriptions. The semantic and hybrid rows used bge-m3 through a local Ollama server. Point `eval` at your own index and your own queries for a number that applies to you.
+> Read these numbers with their limits. The catalog is 21 skills, the author wrote both the queries and the skills, and each query has one expected skill. The table compares the three modes on the same data. It does not predict recall on a catalog of hundreds of real skills with overlapping descriptions. The semantic and hybrid rows used EmbeddingGemma 2 through a local llama.cpp server. Point `eval` at your own index and your own queries for a number that applies to you.
 
 ## Troubleshooting and FAQ
 
@@ -255,16 +255,16 @@ Run `skillsonar build`. Search, `stats` and `eval` read the index that `build` w
 </details>
 
 <details>
-<summary><b>It says "embeddings failed ... is Ollama running?".</b></summary>
+<summary><b>It says "embeddings failed ... is the embeddings server running?".</b></summary>
 
-Start Ollama, or set `OLLAMA_HOST` to the address of the server. If the message says to run `ollama pull bge-m3`, the server is up but does not have the model. To use another model, set `SKILLSONAR_EMBED_MODEL`, and build the embeddings again with that model.
+Start the embeddings server, or set `SKILLSONAR_EMBED_HOST` to the address of the server. If the message says the server does not know the model, the server is up but is not serving `embeddinggemma-2`. To use another model, set `SKILLSONAR_EMBED_MODEL`, and build the embeddings again with that model.
 
 </details>
 
 <details>
 <summary><b>Keyword search misses a skill that clearly fits.</b></summary>
 
-Keyword search matches words, not meaning, so "container got killed" does not find a skill that says "OOMKilled". Build with `--embed` and search with `--hybrid`. If you cannot run Ollama, rewrite the query with words the skill itself would use.
+Keyword search matches words, not meaning, so "container got killed" does not find a skill that says "OOMKilled". Build with `--embed` and search with `--hybrid`. If you cannot run an embeddings server, rewrite the query with words the skill itself would use.
 
 </details>
 
@@ -292,7 +292,7 @@ The first one found, in the order of the default folders. Results say `also in: 
 <details>
 <summary><b>Does it send my skills anywhere?</b></summary>
 
-Only if you ask it to. `build --embed`, `--semantic` and `--hybrid` send skill text and queries to the server named by `OLLAMA_HOST`, a local Ollama by default. `--rerank` sends the query and the shortlisted skill names and descriptions to the endpoint you configured. There is no telemetry and no update check. See [SECURITY.md](SECURITY.md).
+Only if you ask it to. `build --embed`, `--semantic` and `--hybrid` send skill text and queries to the server named by `SKILLSONAR_EMBED_HOST`, a local one by default. `--rerank` sends the query and the shortlisted skill names and descriptions to the endpoint you configured. There is no telemetry and no update check. See [SECURITY.md](SECURITY.md).
 
 </details>
 
@@ -329,8 +329,8 @@ Everything below is reference material: the full list of settings, the repositor
 | `--rerank`, `--pool N` | `search`: rerank the first `N` candidates with a chat model | off, 150 |
 | `--k N`, `--mode keyword\|semantic\|hybrid` | `eval` | 5, keyword |
 | `--version` | print the version | |
-| `OLLAMA_HOST` | embeddings server | `http://127.0.0.1:11434` |
-| `SKILLSONAR_EMBED_MODEL` | embeddings model | `bge-m3` |
+| `SKILLSONAR_EMBED_HOST` | embeddings server | `http://127.0.0.1:11436` |
+| `SKILLSONAR_EMBED_MODEL` | embeddings model | `embeddinggemma-2` |
 | `SKILLSONAR_RERANK_BASE_URL` | OpenAI-compatible endpoint, for example `https://api.openai.com/v1` | none, required for `--rerank` |
 | `SKILLSONAR_RERANK_MODEL` | chat model name | none, required for `--rerank` |
 | `SKILLSONAR_RERANK_API_KEY` | bearer token, optional for local servers | unset |
@@ -352,7 +352,7 @@ How the ranking works, in detail:
 | `src/skillsonar/semantic.py` | The embedding index and cosine ranking. |
 | `src/skillsonar/search.py` | Keyword, semantic and hybrid modes, and the rerank pipeline. |
 | `src/skillsonar/evaluate.py` | recall@k. |
-| `src/skillsonar/ollama.py` | `OllamaClient`, the only code that talks to Ollama. |
+| `src/skillsonar/ollama.py` | `OllamaClient`, the only code that talks to the embeddings server. |
 | `src/skillsonar/rerank.py` | `RerankClient`, the only code that talks to the rerank model. |
 | `src/skillsonar/paths.py` | Default skill folders and the cache directory. |
 | `src/skillsonar/_http.py`, `errors.py` | The small JSON-over-HTTP helper and the error types. |
@@ -378,4 +378,4 @@ skillsonar was `opencode-router` up to version 0.3.3. Version 0.4.0 removes the 
 
 ### Credits and licenses
 
-skillsonar is licensed under the **MIT License** ([LICENSE](LICENSE)). It has no runtime dependencies and bundles no third-party code. The optional embeddings model (`bge-m3`) and the server that runs it (Ollama) are separate projects with their own licenses, and nothing from them is included here.
+skillsonar is licensed under the **MIT License** ([LICENSE](LICENSE)). It has no runtime dependencies and bundles no third-party code. The optional embeddings model (EmbeddingGemma 2) and the server that runs it (llama.cpp) are separate projects with their own licenses, and nothing from them is included here.
